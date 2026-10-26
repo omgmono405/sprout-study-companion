@@ -273,7 +273,11 @@ function MaterialsEditor({ lesson }: { lesson: Lesson }) {
       </ul>
       <form onSubmit={upload} className="flex flex-col gap-2 sm:flex-row">
         <input className={field} placeholder={tr("File title (optional)")} value={title} onChange={(e) => setTitle(e.target.value)} />
-        <input type="file" aria-label={tr("Choose file")} accept=".pdf,.ppt,.pptx,.doc,.docx,video/*,image/*" className={cn(field, "sm:max-w-64")} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <label className={cn(field, "flex cursor-pointer items-center gap-2 sm:max-w-64")}>
+          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className={cn("truncate", !file && "text-muted-foreground")}>{file ? file.name : tr("Choose file")}</span>
+          <input type="file" aria-label={tr("Choose file")} accept=".pdf,.ppt,.pptx,.doc,.docx,video/*,image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </label>
         <button className={btn} disabled={busy}><FileUp className="h-4 w-4" />{busy ? tr("Uploading…") : tr("Upload")}</button>
       </form>
     </div>

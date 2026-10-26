@@ -26,7 +26,7 @@ export function Label({ children, hint }: { children: ReactNode; hint?: string }
   return (
     <span className="mb-1.5 block text-sm font-medium">
       {typeof children === "string" ? translate(children) : children}
-      {hint && <span className="ms-1 font-normal text-muted-foreground">{translate(hint)}</span>}
+      {hint && " "}{hint && <span className="ms-1 font-normal text-muted-foreground">{translate(hint)}</span>}
     </span>
   );
 }
