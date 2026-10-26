@@ -3,14 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/lib/theme";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
-import { Bell, BookOpen, CalendarDays, GraduationCap, LayoutDashboard, ListChecks, LogOut, Menu, ShieldCheck, Sparkles, TrendingUp, WifiOff, X } from "lucide-react";
+import { Bell, BookOpen, CalendarClock, CalendarDays, GraduationCap, LayoutDashboard, ListChecks, LogOut, Menu, ShieldCheck, Sparkles, TrendingUp, WifiOff, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { setupOffline, useOnline } from "@/lib/offline";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { useQuery } from "@tanstack/react-query";
-import { isAdminQuery } from "@/lib/content";
+import { eventsQuery, isAdminQuery } from "@/lib/content";
+import { dueTypes } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -97,10 +98,7 @@ function Shell({ children }: { children: ReactNode }) {
       <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col gap-8 bg-sidebar p-5 lg:flex">
         {brand}
         {links}
-        <div className="mt-auto rounded-2xl bg-sidebar-accent p-4 text-sm text-sidebar-foreground">
-          <p className="font-semibold text-sidebar-accent-foreground">{t("Install Studia")}</p>
-          <p className="mt-1 text-xs opacity-80">{t('Use "Add to Home Screen" in your browser menu to get the app on your phone.')}</p>
-        </div>
+        <UpcomingCard />
       </aside>
 
       {open && (
@@ -180,8 +178,8 @@ function NotificationBell() {
           {notices.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t("No announcements yet.")}</li>}
           {notices.slice(0, 6).map((n) => (
             <li key={n.id} className={cn("border-b px-4 py-3 last:border-0", !n.read && "bg-secondary/60")}>
-              <p className="text-sm font-medium">{n.title}</p>
-              <p className="text-xs text-muted-foreground">{n.body}</p>
+              <p className="text-sm font-medium">{n.heading}</p>
+              <p className="text-xs text-muted-foreground">{n.text}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">{n.time}</p>
             </li>
           ))}
@@ -225,5 +223,58 @@ function UserMenu() {
         </Button>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Countdown to the next quizzes, exams and deadlines, in the sidebar. */
+function UpcomingCard() {
+  const { t, tn, locale } = useI18n();
+  const { data: events = [] } = useQuery(eventsQuery);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  if (now === null) return <div className="mt-auto" />;
+  const next = events
+    .filter((e) => dueTypes.includes(e.type) && new Date(e.ends_at ?? e.starts_at).getTime() >= now)
+    .slice(0, 3);
+
+  const countdown = (iso: string) => {
+    const ms = new Date(iso).getTime() - now;
+    if (ms <= 0) return t("Now");
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return t("In {n} min", { n: mins });
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return t("In {n} h", { n: hours });
+    const days = Math.round(hours / 24);
+    return days === 1 ? t("Tomorrow") : tn(days, "In {n} day", "In {n} days");
+  };
+
+  return (
+    <Link to="/schedule" className="mt-auto block rounded-2xl bg-sidebar-accent p-4 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/80">
+      <p className="flex items-center gap-2 font-semibold text-sidebar-accent-foreground">
+        <CalendarClock className="h-4 w-4 text-primary-glow" />
+        {t("Coming up")}
+      </p>
+      {next.length === 0 ? (
+        <p className="mt-2 text-xs opacity-80">{t("No quizzes or deadlines coming up.")}</p>
+      ) : (
+        <ul className="mt-3 space-y-2.5">
+          {next.map((e) => (
+            <li key={e.id} className="flex items-start gap-2">
+              <span className="mt-0.5 rounded-md bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary-glow">{t(e.type)}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-sidebar-accent-foreground">{e.title}</p>
+                <p className="text-[11px] opacity-75">
+                  {countdown(e.starts_at)} · {new Date(e.starts_at).toLocaleString(locale, { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Link>
   );
 }

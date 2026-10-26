@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BellRing, CalendarClock, FileText, ListChecks, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { useNotifications } from "@/lib/notifications";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,17 @@ const icons = { quiz: ListChecks, material: FileText, schedule: CalendarClock, n
 
 function NotificationsPage() {
   const { t } = useI18n();
-  const { notices, permission, requestPermission, markAllRead } = useNotifications();
+  const { notices, push, enablePush, markAllRead } = useNotifications();
+  const [busy, setBusy] = useState(false);
+  const pushText: Record<string, string> = {
+    loading: "",
+    on: t("On — you'll get alerts on this device, even when Studia is closed."),
+    off: t("Turn on alerts so you never miss a quiz, exam or deadline — even when Studia is closed."),
+    denied: t("Blocked. Allow notifications in your browser settings."),
+    unsupported: t("This browser doesn't support notifications. Alerts will show inside the app."),
+    iframe: t("Open Studia in its own browser tab to turn on alerts."),
+    "ios-install": t("On iPhone: tap Share, then “Add to Home Screen”, open Studia from the icon, and turn on alerts here."),
+  };
   return (
     <div className="mx-auto max-w-3xl space-y-6 fade-up">
       <div>
@@ -34,14 +45,14 @@ function NotificationsPage() {
           <BellRing className="h-6 w-6 shrink-0 text-primary-glow" />
           <div className="flex-1">
             <p className="font-semibold">{t("Device notifications")}</p>
-            <p className="text-sm opacity-75">
-              {permission === "granted" && t("Enabled — you'll get alerts on this device.")}
-              {permission === "denied" && t("Blocked. Allow notifications in your browser settings.")}
-              {permission === "default" && t("Allow alerts so you never miss a quiz or deadline.")}
-              {permission === "unsupported" && t("This browser doesn't support notifications. Alerts will show inside the app.")}
-            </p>
+            <p className="text-sm opacity-75">{pushText[push]}</p>
           </div>
-          {permission === "default" && <Button onClick={requestPermission}>{t("Enable")}</Button>}
+          {push === "off" && (
+            <Button disabled={busy} onClick={async () => { setBusy(true); await enablePush(); setBusy(false); }}>
+              {busy ? t("Turning on…") : t("Enable")}
+            </Button>
+          )}
+          {push === "on" && <BellRing className="h-5 w-5 text-success" aria-label={t("On")} />}
         </div>
       </div>
 
@@ -57,8 +68,8 @@ function NotificationsPage() {
             <li key={n.id} className={cn("flex gap-4 rounded-2xl bg-card p-4 shadow-card", !n.read && "ring-2 ring-primary/30")}>
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary"><I className="h-5 w-5" /></div>
               <div className="flex-1">
-                <p className="font-semibold">{n.title}</p>
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{n.body}</p>
+                <p className="font-semibold">{n.heading}</p>
+                <p className="whitespace-pre-line text-sm text-muted-foreground">{n.text}</p>
               </div>
               <span className="text-xs text-muted-foreground">{n.time}</span>
             </li>

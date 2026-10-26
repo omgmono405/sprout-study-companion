@@ -1,11 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { announcementsQuery } from "@/lib/content";
 import { announcementKinds, type AnnouncementKind } from "@/lib/data";
-import { timeAgo } from "@/lib/notifications";
+import { noticeView, timeAgo } from "@/lib/notifications";
+import { pushAnnouncement } from "@/lib/push.functions";
 import { btn, btnDanger, Card, confirmDelete, field, Label, useSave } from "./shared";
 import { translate as tr, useI18n } from "@/lib/i18n";
 
@@ -16,6 +18,7 @@ export function AnnouncementsAdmin() {
   const { data } = useSuspenseQuery(announcementsQuery);
   useI18n();
   const save = useSave();
+  const push = useServerFn(pushAnnouncement);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<AnnouncementKind>("news");
@@ -25,7 +28,21 @@ export function AnnouncementsAdmin() {
     e.preventDefault();
     if (!title.trim()) { toast.error(tr("Title is required.")); return; }
     setBusy(true);
-    const ok = await save(() => supabase.from("announcements").insert({ title: title.trim(), body: body.trim(), kind }), "Announcement sent to all students", KEYS);
+    let id: string | undefined;
+    const ok = await save(async () => {
+      const r = await supabase.from("announcements").insert({ title: title.trim(), body: body.trim(), kind }).select("id").single();
+      id = r.data?.id;
+      return r;
+    }, "Announcement sent to all students", KEYS);
+    if (ok && id) {
+      try {
+        const { sent } = await push({ data: { announcementId: id } });
+        toast.success(tr("Students notified ({n} devices)", { n: sent }));
+      } catch (err) {
+        console.error(err);
+        toast.error(tr("Saved, but phone notifications couldn't be sent."));
+      }
+    }
     setBusy(false);
     if (ok) { setTitle(""); setBody(""); }
   }

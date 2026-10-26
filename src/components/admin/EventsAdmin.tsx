@@ -1,10 +1,12 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { BellRing, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { eventsQuery, subjectsQuery } from "@/lib/content";
-import { eventTypes, type EventType } from "@/lib/data";
+import { dueTypes, eventTypes, type EventType } from "@/lib/data";
+import { pushAnnouncement } from "@/lib/push.functions";
 import { btn, btnDanger, Card, confirmDelete, field, Label, useSave } from "./shared";
 import { translate as tr, useI18n } from "@/lib/i18n";
 
@@ -14,6 +16,8 @@ export function EventsAdmin() {
   const { data: events } = useSuspenseQuery(eventsQuery);
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const save = useSave();
+  const qc = useQueryClient();
+  const push = useServerFn(pushAnnouncement);
   const { locale } = useI18n();
   const [title, setTitle] = useState("");
   const [type, setType] = useState<EventType>("class");
@@ -22,7 +26,14 @@ export function EventsAdmin() {
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [location, setLocation] = useState("");
+  const [notify, setNotify] = useState(false);
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+
+  function pickType(t: EventType) {
+    setType(t);
+    setNotify(dueTypes.includes(t));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,12 +43,33 @@ export function EventsAdmin() {
     if (Number.isNaN(startsAt.getTime())) { toast.error(tr("Please enter a valid date and time.")); return; }
     if (endsAt && endsAt < startsAt) { toast.error(tr("End time must be after the start time.")); return; }
     setBusy(true);
-    const ok = await save(() => supabase.from("events").insert({
-      title: title.trim(), type, subject_id: subjectId || null,
-      starts_at: startsAt.toISOString(), ends_at: endsAt?.toISOString() ?? null, location: location.trim(),
-    }), "Added to the schedule", KEYS);
+    let eventId: string | undefined;
+    const ok = await save(async () => {
+      const r = await supabase.from("events").insert({
+        title: title.trim(), type, subject_id: subjectId || null,
+        starts_at: startsAt.toISOString(), ends_at: endsAt?.toISOString() ?? null, location: location.trim(),
+      }).select("id").single();
+      eventId = r.data?.id;
+      return r;
+    }, "Added to the schedule", KEYS);
+    if (ok && notify && eventId) {
+      const a = await supabase.from("announcements").insert({
+        title: title.trim(), body: message.trim(), kind: type === "quiz" || type === "exam" ? "quiz" : "schedule", event_id: eventId,
+      }).select("id").single();
+      if (a.error || !a.data) toast.error(a.error?.message ?? tr("Couldn't notify students."));
+      else {
+        await qc.invalidateQueries({ queryKey: ["announcements"] });
+        try {
+          const { sent } = await push({ data: { announcementId: a.data.id } });
+          toast.success(tr("Students notified ({n} devices)", { n: sent }));
+        } catch (err) {
+          console.error(err);
+          toast.error(tr("Saved, but phone notifications couldn't be sent."));
+        }
+      }
+    }
     setBusy(false);
-    if (ok) { setTitle(""); setLocation(""); }
+    if (ok) { setTitle(""); setLocation(""); setMessage(""); }
   }
 
   const upcoming = events.filter((e) => new Date(e.ends_at ?? e.starts_at).getTime() >= Date.now() - 86400000);
@@ -50,7 +82,7 @@ export function EventsAdmin() {
           <label className="block"><Label>Title</Label><input className={field} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} /></label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><Label>Type</Label>
-              <select className={field} value={type} onChange={(e) => setType(e.target.value as EventType)}>
+              <select className={field} value={type} onChange={(e) => pickType(e.target.value as EventType)}>
                 {eventTypes.map((t) => <option key={t} value={t} className="capitalize">{tr(t)}</option>)}
               </select>
             </label>
@@ -67,7 +99,17 @@ export function EventsAdmin() {
             <label className="block"><Label hint="(optional)">Ends</Label><input type="time" className={field} value={end} onChange={(e) => setEnd(e.target.value)} /></label>
           </div>
           <label className="block"><Label hint="(optional)">Location</Label><input className={field} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} /></label>
-          <button className={btn} disabled={busy}><Plus className="h-4 w-4" />{tr("Add")}</button>
+          <label className="flex items-start gap-2.5 rounded-xl bg-secondary p-3 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+            <span>
+              <span className="flex items-center gap-1.5 font-semibold"><BellRing className="h-4 w-4 text-primary" />{tr("Notify all students")}</span>
+              <span className="block text-xs text-muted-foreground">{tr("Sends an alert to their phones and shows it in their alerts.")}</span>
+            </span>
+          </label>
+          {notify && (
+            <label className="block"><Label hint="(optional)">Message to students</Label><textarea className={field} rows={2} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} /></label>
+          )}
+          <button className={btn} disabled={busy}><Plus className="h-4 w-4" />{busy ? tr("Saving…") : tr("Add")}</button>
         </form>
       </Card>
       <Card title="Upcoming">
