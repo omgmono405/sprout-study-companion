@@ -6,6 +6,7 @@ import cover from "@/assets/cover.jpg";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/lib/theme";
+import { LanguageToggle, translate, useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,6 +28,7 @@ const features = [
 ];
 
 function Cover() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +43,7 @@ function Cover() {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (result.error) {
       setLoading(false);
-      toast.error("Google sign-in didn't complete. Please try again.");
+      toast.error(translate("Google sign-in didn't complete. Please try again."));
       return;
     }
     if (result.redirected) return;
@@ -56,18 +58,21 @@ function Cover() {
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </div>
-            <span className="text-lg font-bold tracking-tight">Studia</span>
+            <span className="text-lg font-bold tracking-tight">{t("Studia")}</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="fade-up my-auto max-w-lg py-12">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">Your study space</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary rtl:tracking-normal">{t("Your study space")}</p>
           <h1 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
-            Learn smarter. <span className="text-primary">Stay on track.</span>
+            {t("Learn smarter.")} <span className="text-primary">{t("Stay on track.")}</span>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Lessons, step-by-step solutions, your timetable and quizzes with instant feedback — all in one place.
+            {t("Lessons, step-by-step solutions, your timetable and quizzes with instant feedback — all in one place.")}
           </p>
 
           <button
@@ -76,24 +81,24 @@ function Cover() {
             className="mt-8 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-card px-5 py-3.5 font-semibold text-card-foreground shadow-card ring-1 ring-border transition hover:shadow-elegant disabled:opacity-60 sm:w-auto"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleMark />}
-            Continue with Google
+            {t("Continue with Google")}
           </button>
 
           <ul className="mt-10 grid grid-cols-2 gap-3">
             {features.map(({ icon: Icon, label }) => (
               <li key={label} className="flex items-center gap-2.5 text-sm text-muted-foreground">
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-primary"><Icon className="h-4 w-4" /></span>
-                {label}
+                {t(label)}
               </li>
             ))}
           </ul>
         </main>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Studia</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} {t("Studia")}</p>
       </div>
 
       <div className="relative hidden overflow-hidden lg:block">
-        <img src={cover} alt="Student studying with glowing study cards" width={1280} height={1280} className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/20 to-transparent" />
+        <img src={cover} alt={t("Student studying with glowing study cards")} width={1280} height={1280} className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/20 to-transparent rtl:bg-gradient-to-l" />
       </div>
     </div>
   );
