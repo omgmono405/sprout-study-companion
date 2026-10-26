@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BellRing, CalendarClock, FileText, ListChecks, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notifications";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
@@ -19,36 +20,37 @@ export const Route = createFileRoute("/_authenticated/notifications")({
 const icons = { quiz: ListChecks, material: FileText, schedule: CalendarClock, news: Megaphone };
 
 function NotificationsPage() {
+  const { t } = useI18n();
   const { notices, permission, requestPermission, markAllRead } = useNotifications();
   return (
     <div className="mx-auto max-w-3xl space-y-6 fade-up">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Alerts</h1>
-        <p className="text-muted-foreground">Stay on top of quizzes, materials and schedule changes.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("Alerts")}</h1>
+        <p className="text-muted-foreground">{t("Stay on top of quizzes, materials and schedule changes.")}</p>
       </div>
 
       <div className="rounded-2xl bg-navy p-6 text-navy-foreground">
         <div className="flex items-start gap-4">
           <BellRing className="h-6 w-6 shrink-0 text-primary-glow" />
           <div className="flex-1">
-            <p className="font-semibold">Device notifications</p>
+            <p className="font-semibold">{t("Device notifications")}</p>
             <p className="text-sm opacity-75">
-              {permission === "granted" && "Enabled — you'll get alerts on this device."}
-              {permission === "denied" && "Blocked. Allow notifications in your browser settings."}
-              {permission === "default" && "Allow alerts so you never miss a quiz or deadline."}
-              {permission === "unsupported" && "This browser doesn't support notifications. Alerts will show inside the app."}
+              {permission === "granted" && t("Enabled — you'll get alerts on this device.")}
+              {permission === "denied" && t("Blocked. Allow notifications in your browser settings.")}
+              {permission === "default" && t("Allow alerts so you never miss a quiz or deadline.")}
+              {permission === "unsupported" && t("This browser doesn't support notifications. Alerts will show inside the app.")}
             </p>
           </div>
-          {permission === "default" && <Button onClick={requestPermission}>Enable</Button>}
+          {permission === "default" && <Button onClick={requestPermission}>{t("Enable")}</Button>}
         </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Inbox</h2>
-        <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
+        <h2 className="text-xl font-bold">{t("Inbox")}</h2>
+        <Button variant="ghost" size="sm" onClick={markAllRead}>{t("Mark all read")}</Button>
       </div>
       <ul className="space-y-3">
-        {notices.length === 0 && <li className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-card">No announcements yet.</li>}
+        {notices.length === 0 && <li className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-card">{t("No announcements yet.")}</li>}
         {notices.map((n) => {
           const I = icons[n.kind] ?? Megaphone;
           return (

@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { EventType } from "@/lib/data";
 import { eventsQuery, subjectsQuery } from "@/lib/content";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/schedule")({
   head: () => ({
@@ -30,9 +31,12 @@ const typeStyle: Record<EventType, string> = {
 
 const dayKey = (d: Date) => d.toDateString();
 
-const hm = (d: Date) => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+const hm = (d: Date, locale: string) => d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+const sortKey = (d: Date) => d.getHours() * 60 + d.getMinutes();
 
 function SchedulePage() {
+  const { t, locale } = useI18n();
+  const tr = t;
   const { data: events } = useSuspenseQuery(eventsQuery);
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const [today, setToday] = useState<Date | null>(null);
@@ -51,12 +55,12 @@ function SchedulePage() {
         return {
           ...e,
           date,
-          start: hm(date),
-          end: end ? hm(end) : hm(date),
+          start: hm(date, locale),
+          end: end ? hm(end, locale) : hm(date, locale),
           subject: subjects.find((s) => s.id === e.subject_id)?.name ?? "",
         };
       });
-  }, [today, filter, events, subjects]);
+  }, [today, filter, events, subjects, locale]);
 
   if (!today) return <div className="h-96 animate-pulse rounded-2xl bg-card" />;
 
@@ -65,13 +69,13 @@ function SchedulePage() {
   const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
   const cells = [...Array(startPad).fill(null), ...Array.from({ length: days }, (_, i) => new Date(view.getFullYear(), view.getMonth(), i + 1))];
   const sel = selected ?? dayKey(today);
-  const dayEvents = dated.filter((e) => dayKey(e.date) === sel).sort((a, b) => a.start.localeCompare(b.start));
+  const dayEvents = dated.filter((e) => dayKey(e.date) === sel).sort((a, b) => sortKey(a.date) - sortKey(b.date));
 
   return (
     <div className="space-y-6 fade-up">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Schedule</h1>
-        <p className="text-muted-foreground">Tap a day to see what's planned.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("Schedule")}</h1>
+        <p className="text-muted-foreground">{t("Tap a day to see what's planned.")}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {(["all", "class", "lecture", "study", "quiz", "deadline"] as const).map((t) => (
@@ -83,21 +87,21 @@ function SchedulePage() {
               filter === t ? "bg-primary text-primary-foreground" : "bg-card shadow-card hover:bg-secondary",
             )}
           >
-            {t}
+            {tr(t)}
           </button>
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="rounded-2xl bg-card p-4 shadow-card md:p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold">{view.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2>
+            <h2 className="text-lg font-bold">{view.toLocaleDateString(locale, { month: "long", year: "numeric" })}</h2>
             <div className="flex gap-1">
-              <button aria-label="Previous month" onClick={() => setMonth(month - 1)} className="rounded-lg p-2 hover:bg-secondary"><ChevronLeft className="h-4 w-4" /></button>
-              <button aria-label="Next month" onClick={() => setMonth(month + 1)} className="rounded-lg p-2 hover:bg-secondary"><ChevronRight className="h-4 w-4" /></button>
+              <button aria-label={t("Previous month")} onClick={() => setMonth(month - 1)} className="rounded-lg p-2 hover:bg-secondary"><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></button>
+              <button aria-label={t("Next month")} onClick={() => setMonth(month + 1)} className="rounded-lg p-2 hover:bg-secondary"><ChevronRight className="h-4 w-4 rtl:rotate-180" /></button>
             </div>
           </div>
           <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <div key={d} className="py-2">{d}</div>)}
+            {Array.from({ length: 7 }, (_, d) => new Date(2024, 0, 7 + d).toLocaleDateString(locale, { weekday: "short" })).map((d) => <div key={d} className="py-2">{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-1">
             {cells.map((d, i) => {
@@ -117,7 +121,7 @@ function SchedulePage() {
                   <span className="font-semibold">{d.getDate()}</span>
                   <div className="flex flex-wrap gap-0.5 md:w-full md:flex-col">
                     {evs.map((e) => (
-                      <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full md:h-auto md:w-full md:truncate md:rounded md:px-1 md:text-left md:text-[10px]", (typeStyle[e.type] ?? typeStyle.class))}>
+                      <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full md:h-auto md:w-full md:truncate md:rounded md:px-1 md:text-start md:text-[10px]", (typeStyle[e.type] ?? typeStyle.class))}>
                         <span className="hidden md:inline">{e.title}</span>
                       </span>
                     ))}
@@ -128,16 +132,16 @@ function SchedulePage() {
           </div>
         </div>
         <div className="rounded-2xl bg-card p-5 shadow-card">
-          <h2 className="font-bold">{new Date(sel).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</h2>
+          <h2 className="font-bold">{new Date(sel).toLocaleDateString(locale, { weekday: "long", month: "short", day: "numeric" })}</h2>
           <div className="mt-4 space-y-3">
-            {dayEvents.length === 0 && <p className="text-sm text-muted-foreground">Nothing scheduled. Enjoy the free time!</p>}
+            {dayEvents.length === 0 && <p className="text-sm text-muted-foreground">{t("Nothing scheduled. Enjoy the free time!")}</p>}
             {dayEvents.map((e) => (
               <div key={e.id} className="rounded-xl border p-4">
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase", (typeStyle[e.type] ?? typeStyle.class))}>{e.type}</span>
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase", (typeStyle[e.type] ?? typeStyle.class))}>{t(e.type)}</span>
                 <p className="mt-2 font-semibold">{e.title}</p>
                 <p className="text-xs text-muted-foreground">{e.subject}</p>
                 <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{e.start === e.end ? `Due ${e.end}` : `${e.start} – ${e.end}`}</span>
+                  <span>{e.start === e.end ? t("Due {time}", { time: e.end }) : `${e.start} – ${e.end}`}</span>
                   {e.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{e.location}</span>}
                 </div>
               </div>
