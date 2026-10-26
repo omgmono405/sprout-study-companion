@@ -24,11 +24,11 @@ export function EventsAdmin() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !date) return toast.error("Title and date are required.");
+    if (!title.trim() || !date) { toast.error("Title and date are required."); return; }
     const startsAt = new Date(`${date}T${start || "00:00"}`);
     const endsAt = end ? new Date(`${date}T${end}`) : null;
-    if (Number.isNaN(startsAt.getTime())) return toast.error("Please enter a valid date and time.");
-    if (endsAt && endsAt < startsAt) return toast.error("End time must be after the start time.");
+    if (Number.isNaN(startsAt.getTime())) { toast.error("Please enter a valid date and time."); return; }
+    if (endsAt && endsAt < startsAt) { toast.error("End time must be after the start time."); return; }
     setBusy(true);
     const ok = await save(() => supabase.from("events").insert({
       title: title.trim(), type, subject_id: subjectId || null,

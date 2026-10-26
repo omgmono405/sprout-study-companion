@@ -21,7 +21,7 @@ export function AnnouncementsAdmin() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return toast.error("Title is required.");
+    if (!title.trim()) { toast.error("Title is required."); return; }
     setBusy(true);
     const ok = await save(() => supabase.from("announcements").insert({ title: title.trim(), body: body.trim(), kind }), "Announcement sent to all students", KEYS);
     setBusy(false);

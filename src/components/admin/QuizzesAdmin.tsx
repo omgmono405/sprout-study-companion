@@ -24,7 +24,7 @@ export function QuizzesAdmin() {
   const [editing, setEditing] = useState<Quiz | "new" | null>(null);
   const save = useSave();
 
-  if (editing) return <QuizEditor initial={editing === "new" ? undefined : editing} onDone={() => setEditing(null)} />;
+  if (editing) return <QuizEditor {...(editing === "new" ? {} : { initial: editing })} onDone={() => setEditing(null)} />;
 
   return (
     <Card>
@@ -66,12 +66,12 @@ function QuizEditor({ initial, onDone }: { initial?: Quiz; onDone: () => void })
   const setQ = (i: number, q: Question) => setQuestions((xs) => xs.map((x, j) => (j === i ? q : x)));
 
   async function submit() {
-    if (!title.trim()) return toast.error("Quiz title is required.");
-    if (!questions.length) return toast.error("Add at least one question.");
+    if (!title.trim()) { toast.error("Quiz title is required."); return; }
+    if (!questions.length) { toast.error("Add at least one question."); return; }
     for (const [n, q] of questions.entries()) {
-      if (!q.prompt.trim()) return toast.error(`Question ${n + 1} needs a prompt.`);
-      if (q.type === "mcq" && q.options.filter((o) => o.trim()).length < 2) return toast.error(`Question ${n + 1} needs at least 2 options.`);
-      if (q.type === "fill" && !q.answer.some((a) => a.trim())) return toast.error(`Question ${n + 1} needs an accepted answer.`);
+      if (!q.prompt.trim()) { toast.error(`Question ${n + 1} needs a prompt.`); return; }
+      if (q.type === "mcq" && q.options.filter((o) => o.trim()).length < 2) { toast.error(`Question ${n + 1} needs at least 2 options.`); return; }
+      if (q.type === "fill" && !q.answer.some((a) => a.trim())) { toast.error(`Question ${n + 1} needs an accepted answer.`); return; }
     }
     const clean = questions.map((q): Question => {
       if (q.type === "mcq") return { ...q, options: q.options.map((o) => o.trim()) };

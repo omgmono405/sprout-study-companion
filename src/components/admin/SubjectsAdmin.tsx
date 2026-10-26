@@ -57,7 +57,7 @@ function SubjectForm({ initial, onSaved, onCancel }: { initial?: Subject; onSave
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return toast.error("Subject name is required.");
+    if (!name.trim()) { toast.error("Subject name is required."); return; }
     setBusy(true);
     const row = { name: name.trim(), description: description.trim(), instructor: instructor.trim(), icon };
     let id = initial?.id;
@@ -172,7 +172,7 @@ function LessonForm({ subjectId, initial, nextSort, onSaved, onDeleted }: {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return toast.error("Lesson title is required.");
+    if (!title.trim()) { toast.error("Lesson title is required."); return; }
     setBusy(true);
     const clean = solutions
       .map((s) => ({ problem: s.problem.trim(), answer: s.answer.trim(), steps: s.steps.map((x) => x.trim()).filter(Boolean) }))
@@ -235,15 +235,15 @@ function MaterialsEditor({ lesson }: { lesson: Lesson }) {
 
   async function upload(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) return toast.error("Choose a file first.");
-    if (file.size > 50 * 1024 * 1024) return toast.error("Files must be 50 MB or smaller.");
+    if (!file) { toast.error("Choose a file first."); return; }
+    if (file.size > 50 * 1024 * 1024) { toast.error("Files must be 50 MB or smaller."); return; }
     setBusy(true);
     const safe = file.name.replace(/[^\w.-]+/g, "_");
     const path = `${lesson.id}/${crypto.randomUUID()}-${safe}`;
-    const up = await supabase.storage.from("materials").upload(path, file, { contentType: file.type || undefined });
+    const up = await supabase.storage.from("materials").upload(path, file, file.type ? { contentType: file.type } : {});
     if (up.error) {
       setBusy(false);
-      return toast.error(up.error.message);
+      { toast.error(up.error.message); return; }
     }
     const ok = await save(() => supabase.from("materials").insert({
       lesson_id: lesson.id, title: title.trim() || file.name, file_path: path, mime_type: file.type, size_bytes: file.size,

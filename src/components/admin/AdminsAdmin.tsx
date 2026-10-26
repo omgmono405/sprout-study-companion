@@ -22,7 +22,7 @@ export function AdminsAdmin({ myEmail }: { myEmail: string }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const v = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return toast.error("Enter a valid email address.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { toast.error("Enter a valid email address."); return; }
     if (await save(() => supabase.from("admin_emails").insert({ email: v }), "Admin added", KEYS)) setEmail("");
   }
 
