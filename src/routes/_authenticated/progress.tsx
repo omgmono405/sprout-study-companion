@@ -7,6 +7,7 @@ import { SubjectIcon } from "@/components/app/SubjectIcon";
 import { quizzesQuery, subjectsQuery } from "@/lib/content";
 import { computeStreaks, dayKey, progressQuery } from "@/lib/progress";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/progress")({
   head: () => ({
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/progress")({
 });
 
 function ProgressPage() {
+  const { t, tn, locale } = useI18n();
   const { data } = useSuspenseQuery(progressQuery);
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const { data: quizzes } = useSuspenseQuery(quizzesQuery);
@@ -37,9 +39,9 @@ function ProgressPage() {
   const best = data.attempts.reduce((m, a) => Math.max(m, a.percent), 0);
   const chart = data.attempts.map((a, i) => ({
     n: i + 1,
-    date: new Date(a.taken_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    date: new Date(a.taken_at).toLocaleDateString(locale, { month: "short", day: "numeric" }),
     score: a.percent,
-    quiz: quizzes.find((q) => q.id === a.quiz_id)?.title ?? "Removed quiz",
+    quiz: quizzes.find((q) => q.id === a.quiz_id)?.title ?? t("Removed quiz"),
   }));
 
   // Last 12 weeks heatmap, oldest first
@@ -49,21 +51,21 @@ function ProgressPage() {
   const cells = Array.from({ length: 84 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() - (83 - i));
-    return { key: dayKey(d), count: counts.get(dayKey(d)) ?? 0, label: d.toLocaleDateString() };
+    return { key: dayKey(d), count: counts.get(dayKey(d)) ?? 0, label: d.toLocaleDateString(locale) };
   });
 
   const stats = [
-    { label: "Current streak", value: `${streak.current} day${streak.current === 1 ? "" : "s"}`, icon: Flame },
-    { label: "Best streak", value: `${streak.best} day${streak.best === 1 ? "" : "s"}`, icon: Medal },
-    { label: "Lessons completed", value: `${Math.min(data.lessons.length, totalLessons)} / ${totalLessons}`, icon: BookCheck },
-    { label: "Average quiz score", value: data.attempts.length ? `${avg}%` : "—", icon: Trophy },
+    { label: t("Current streak"), value: tn(streak.current, "{n} day", "{n} days"), icon: Flame },
+    { label: t("Best streak"), value: tn(streak.best, "{n} day", "{n} days"), icon: Medal },
+    { label: t("Lessons completed"), value: `${Math.min(data.lessons.length, totalLessons)} / ${totalLessons}`, icon: BookCheck },
+    { label: t("Average quiz score"), value: data.attempts.length ? `${avg}%` : "—", icon: Trophy },
   ];
 
   return (
     <div className="space-y-6 fade-up">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">My progress</h1>
-        <p className="text-muted-foreground">Every lesson you finish and quiz you take shows up here.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("My progress")}</h1>
+        <p className="text-muted-foreground">{t("Every lesson you finish and quiz you take shows up here.")}</p>
       </div>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -79,13 +81,13 @@ function ProgressPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-2xl bg-card p-5 shadow-card lg:col-span-2">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-bold">Quiz scores over time</h2>
-            {best > 0 && <span className="text-sm text-muted-foreground">Best: {best}%</span>}
+            <h2 className="font-bold">{t("Quiz scores over time")}</h2>
+            {best > 0 && <span className="text-sm text-muted-foreground">{t("Best: {n}%", { n: best })}</span>}
           </div>
           {chart.length === 0 ? (
-            <Empty text="Take a quiz to see your scores here." to="/quizzes" cta="Browse quizzes" />
+            <Empty text={t("Take a quiz to see your scores here.")} to="/quizzes" cta={t("Browse quizzes")} />
           ) : (
-            <div className="mt-4 h-64">
+            <div className="mt-4 h-64" dir="ltr">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chart} margin={{ left: -20, right: 8, top: 8 }}>
                   <defs>
@@ -99,7 +101,7 @@ function ProgressPage() {
                   <YAxis domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--popover-foreground)" }}
-                    formatter={(v) => [`${v}%`, "Score"]}
+                    formatter={(v) => [`${v}%`, t("Score")]}
                     labelFormatter={(_, p) => p[0]?.payload.quiz ?? ""}
                   />
                   <Area type="monotone" dataKey="score" stroke="var(--primary)" strokeWidth={2.5} fill="url(#score)" />
@@ -110,13 +112,13 @@ function ProgressPage() {
         </section>
 
         <section className="rounded-2xl bg-card p-5 shadow-card">
-          <h2 className="font-bold">Study activity</h2>
-          <p className="text-xs text-muted-foreground">Last 12 weeks</p>
+          <h2 className="font-bold">{t("Study activity")}</h2>
+          <p className="text-xs text-muted-foreground">{t("Last 12 weeks")}</p>
           <div className="mt-4 grid grid-flow-col grid-rows-7 gap-1">
             {cells.map((c) => (
               <div
                 key={c.key}
-                title={`${c.label}: ${c.count} activit${c.count === 1 ? "y" : "ies"}`}
+                title={t(c.count === 1 ? "{label}: {n} activity" : "{label}: {n} activities", { label: c.label, n: c.count })}
                 className={cn(
                   "aspect-square rounded-sm",
                   c.count === 0 ? "bg-muted" : c.count === 1 ? "bg-primary/40" : c.count === 2 ? "bg-primary/70" : "bg-primary",
@@ -124,15 +126,15 @@ function ProgressPage() {
               />
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Active on {streak.activeDays} day{streak.activeDays === 1 ? "" : "s"}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{tn(streak.activeDays, "Active on {n} day", "Active on {n} days")}</p>
         </section>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl bg-card p-5 shadow-card">
-          <h2 className="mb-4 font-bold">Lessons by subject</h2>
+          <h2 className="mb-4 font-bold">{t("Lessons by subject")}</h2>
           <div className="space-y-4">
-            {subjects.length === 0 && <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+            {subjects.length === 0 && <p className="text-sm text-muted-foreground">{t("No subjects yet.")}</p>}
             {subjects.map((s) => {
               const doneCount = s.lessons.filter((t) => data.lessons.some((l) => l.lesson_key === t.id)).length;
               return (
@@ -149,16 +151,16 @@ function ProgressPage() {
         </section>
 
         <section className="rounded-2xl bg-card p-5 shadow-card">
-          <h2 className="mb-4 font-bold">Recent quiz attempts</h2>
+          <h2 className="mb-4 font-bold">{t("Recent quiz attempts")}</h2>
           {data.attempts.length === 0 ? (
-            <Empty text="No attempts yet." to="/quizzes" cta="Start a quiz" />
+            <Empty text={t("No attempts yet.")} to="/quizzes" cta={t("Start a quiz")} />
           ) : (
             <ul className="divide-y divide-border">
               {[...data.attempts].reverse().slice(0, 8).map((a, i) => (
                 <li key={i} className="flex items-center justify-between py-3">
                   <div>
-                    <p className="text-sm font-medium">{quizzes.find((q) => q.id === a.quiz_id)?.title ?? "Removed quiz"}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(a.taken_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p>
+                    <p className="text-sm font-medium">{quizzes.find((q) => q.id === a.quiz_id)?.title ?? t("Removed quiz")}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(a.taken_at).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" })}</p>
                   </div>
                   <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", a.percent >= 70 ? "bg-success text-success-foreground" : a.percent >= 50 ? "bg-warning text-foreground" : "bg-destructive text-destructive-foreground")}>
                     {a.percent}%

@@ -10,6 +10,7 @@ export type StudyPlanInput = {
   completed: string[];
   remaining: string[];
   quizzes: { title: string; percent: number; takenAt: string }[];
+  lang?: "ar" | "en";
 };
 
 export class GatewayError extends Error {
@@ -55,7 +56,10 @@ export async function generateStudyPlan(input: StudyPlanInput): Promise<string> 
     model: provider.responses(MODEL),
     maxRetries: 0,
     instructions:
-      "You are a warm, encouraging study coach for students. Create a concise, practical, personalized study plan. Base it on the lessons they completed and their quiz scores. Use quiz scores to find weak spots (below 70% needs review, 70-85% needs practice, above 85% is solid). Format in Markdown with these sections: '## Where you stand', '## Your plan' (a numbered day-by-day plan for 7 days, 20-45 minutes each), '## Focus areas', '## Quick tip'. Keep it under 400 words.",
+      "You are a warm, encouraging study coach for students. Create a concise, practical, personalized study plan. Base it on the lessons they completed and their quiz scores. Use quiz scores to find weak spots (below 70% needs review, 70-85% needs practice, above 85% is solid). Format in Markdown with these sections: '## Where you stand', '## Your plan' (a numbered day-by-day plan for 7 days, 20-45 minutes each), '## Focus areas', '## Quick tip'. Keep it under 400 words." +
+      (input.lang === "ar"
+        ? " Write the entire plan in clear, simple Arabic, including the section headings (use: '## أين تقف الآن', '## خطتك', '## نقاط التركيز', '## نصيحة سريعة')."
+        : " Write the plan in English."),
     messages: [
       {
         role: "user",

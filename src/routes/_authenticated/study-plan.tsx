@@ -8,6 +8,7 @@ import { subjectsQuery } from "@/lib/content";
 import { EmptyState } from "@/components/app/EmptyState";
 import { createStudyPlan } from "@/lib/study-plan.functions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/study-plan")({
   head: () => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/study-plan")({
 type Stats = { completed: number; total: number; quizzes: number };
 
 function StudyPlanPage() {
+  const { t, lang } = useI18n();
   const run = useServerFn(createStudyPlan);
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
@@ -36,18 +38,18 @@ function StudyPlanPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!goal.trim()) return setError("Tell us what you'd like to achieve.");
+    if (!goal.trim()) return setError(t("Tell us what you'd like to achieve."));
     setLoading(true);
     setError(null);
     setPlan(null);
     try {
-      const res = await run({ data: { subjectId, goal } });
+      const res = await run({ data: { subjectId, goal, lang } });
       if (res.ok) {
         setPlan(res.plan);
         setStats(res.stats);
-      } else setError(res.error);
+      } else setError(t(res.error));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? t(err.message) : t("Something went wrong."));
     } finally {
       setLoading(false);
     }
@@ -56,19 +58,19 @@ function StudyPlanPage() {
   return (
     <div className="space-y-6 fade-up">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">AI study plan</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("AI study plan")}</h1>
         <p className="text-muted-foreground">
-          Pick a subject and share your goal — we'll build a plan from your lessons and quiz scores.
+          {t("Pick a subject and share your goal — we'll build a plan from your lessons and quiz scores.")}
         </p>
       </div>
 
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" text="Once subjects are added you can create a study plan for them." />
+        <EmptyState title={t("No subjects yet")} text={t("Once subjects are added you can create a study plan for them.")} />
       ) : (
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <form onSubmit={submit} className="space-y-5 self-start rounded-2xl bg-card p-6 shadow-card">
           <div>
-            <p className="mb-3 text-sm font-semibold">Subject</p>
+            <p className="mb-3 text-sm font-semibold">{t("Subject")}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {subjects.map((s) => (
                 <button
@@ -76,7 +78,7 @@ function StudyPlanPage() {
                   key={s.id}
                   onClick={() => setSubjectId(s.id)}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors",
+                    "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-start text-sm font-medium transition-colors",
                     subjectId === s.id
                       ? "border-primary bg-primary text-primary-foreground shadow-elegant"
                       : "hover:bg-secondary",
@@ -89,14 +91,14 @@ function StudyPlanPage() {
             </div>
           </div>
           <div>
-            <label htmlFor="goal" className="mb-2 block text-sm font-semibold">Your learning goal</label>
+            <label htmlFor="goal" className="mb-2 block text-sm font-semibold">{t("Your learning goal")}</label>
             <textarea
               id="goal"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               rows={4}
               maxLength={600}
-              placeholder="e.g. Feel confident with quadratic equations before next week's quiz"
+              placeholder={t("e.g. Feel confident with quadratic equations before next week's quiz")}
               className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -107,7 +109,7 @@ function StudyPlanPage() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-70"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {loading ? "Building your plan…" : "Create my study plan"}
+            {loading ? t("Building your plan…") : t("Create my study plan")}
           </button>
         </form>
 
@@ -117,10 +119,10 @@ function StudyPlanPage() {
               {stats && (
                 <div className="mb-5 flex flex-wrap gap-2 text-xs font-medium">
                   <span className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">
-                    <BookCheck className="h-3.5 w-3.5" /> {stats.completed}/{stats.total} lessons done
+                    <BookCheck className="h-3.5 w-3.5" /> {t("{done}/{total} lessons done", { done: stats.completed, total: stats.total })}
                   </span>
                   <span className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-secondary-foreground">
-                    <ListChecks className="h-3.5 w-3.5" /> {stats.quizzes} quiz attempts
+                    <ListChecks className="h-3.5 w-3.5" /> {t("{n} quiz attempts", { n: stats.quizzes })}
                   </span>
                 </div>
               )}
@@ -129,7 +131,7 @@ function StudyPlanPage() {
           ) : (
             <div className="flex min-h-64 flex-col items-center justify-center text-center text-muted-foreground">
               <Sparkles className={cn("mb-3 h-9 w-9 text-primary", loading && "animate-pulse")} />
-              <p>{loading ? "Looking at your lessons and quiz scores…" : "Your personalized plan will appear here."}</p>
+              <p>{loading ? t("Looking at your lessons and quiz scores…") : t("Your personalized plan will appear here.")}</p>
             </div>
           )}
         </section>
@@ -153,9 +155,9 @@ function Markdown({ text }: { text: string }) {
     const items = list.items.map((it, i) => <li key={i}>{inline(it)}</li>);
     out.push(
       list.ordered ? (
-        <ol key={out.length} className="list-decimal space-y-1.5 pl-5">{items}</ol>
+        <ol key={out.length} className="list-decimal space-y-1.5 ps-5">{items}</ol>
       ) : (
-        <ul key={out.length} className="list-disc space-y-1.5 pl-5">{items}</ul>
+        <ul key={out.length} className="list-disc space-y-1.5 ps-5">{items}</ul>
       ),
     );
     list = null;

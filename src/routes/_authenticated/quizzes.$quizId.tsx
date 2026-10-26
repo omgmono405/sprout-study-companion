@@ -11,6 +11,7 @@ import type { Question } from "@/lib/data";
 import { quizzesQuery, subjectsQuery } from "@/lib/content";
 import { isCorrect, scoreQuiz, type AnswerValue } from "@/lib/quiz";
 import { cn } from "@/lib/utils";
+import { translate, useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/quizzes/$quizId")({
   loader: async ({ params, context }) => {
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/quizzes/$quizId")({
 });
 
 function QuizPlayer() {
+  const { t, tn } = useI18n();
   const { quizId } = Route.useParams();
   const { data: quizzes } = useSuspenseQuery(quizzesQuery);
   const quiz = quizzes.find((q) => q.id === quizId)!;
@@ -57,7 +59,7 @@ function QuizPlayer() {
     const s = scoreQuiz(quiz.questions, answers);
     recordAttempt({ quiz_id: quiz.id, ...s })
       .then(() => qc.invalidateQueries({ queryKey: progressQuery.queryKey }))
-      .catch(() => toast.error("Your score couldn't be saved to your progress."));
+      .catch(() => toast.error(translate("Your score couldn't be saved to your progress.")));
   };
   const reset = () => { setI(0); setAnswers({}); setLeft(quiz.minutes * 60); setDone(false); };
   const q = quiz.questions[i]!;
@@ -70,25 +72,25 @@ function QuizPlayer() {
     return (
       <div className="mx-auto max-w-3xl space-y-6 fade-up">
         <div className="rounded-3xl bg-hero p-8 text-center text-primary-foreground">
-          <p className="text-sm opacity-80">{left <= 0 ? "Time's up!" : "Quiz complete"}</p>
+          <p className="text-sm opacity-80">{left <= 0 ? t("Time's up!") : t("Quiz complete")}</p>
           <p className="mt-2 text-6xl font-extrabold">{s.percent}%</p>
-          <p className="mt-2 opacity-90">{s.correct} of {s.total} correct</p>
+          <p className="mt-2 opacity-90">{t("{correct} of {total} correct", { correct: s.correct, total: s.total })}</p>
           <div className="mt-6 flex justify-center gap-3">
-            <button onClick={reset} className="inline-flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-semibold text-foreground"><RotateCcw className="h-4 w-4" />Retry</button>
-            <Link to="/quizzes" className="rounded-xl border border-primary-foreground/30 px-4 py-2.5 text-sm font-semibold">All quizzes</Link>
+            <button onClick={reset} className="inline-flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-semibold text-foreground"><RotateCcw className="h-4 w-4" />{t("Retry")}</button>
+            <Link to="/quizzes" className="rounded-xl border border-primary-foreground/30 px-4 py-2.5 text-sm font-semibold">{t("All quizzes")}</Link>
           </div>
         </div>
-        <h2 className="text-xl font-bold">Review</h2>
+        <h2 className="text-xl font-bold">{t("Review")}</h2>
         {quiz.questions.map((qq, n) => {
           const ok = isCorrect(qq, answers[qq.id]);
           return (
-            <div key={qq.id} className={cn("rounded-2xl border-l-4 bg-card p-5 shadow-card", ok ? "border-success" : "border-destructive")}>
+            <div key={qq.id} className={cn("rounded-2xl border-s-4 bg-card p-5 shadow-card", ok ? "border-success" : "border-destructive")}>
               <div className="flex items-start gap-3">
                 {ok ? <CheckCircle2 className="h-5 w-5 shrink-0 text-success" /> : <XCircle className="h-5 w-5 shrink-0 text-destructive" />}
                 <div className="space-y-2">
                   <p className="font-semibold">{n + 1}. {qq.prompt}</p>
-                  <p className="text-sm"><span className="text-muted-foreground">Your answer: </span>{formatAnswer(qq, answers[qq.id])}</p>
-                  {!ok && qq.type !== "essay" && <p className="text-sm"><span className="text-muted-foreground">Correct: </span><span className="font-medium text-success">{correctAnswer(qq)}</span></p>}
+                  <p className="text-sm"><span className="text-muted-foreground">{t("Your answer: ")}</span>{formatAnswer(qq, answers[qq.id])}</p>
+                  {!ok && qq.type !== "essay" && <p className="text-sm"><span className="text-muted-foreground">{t("Correct: ")}</span><span className="font-medium text-success">{correctAnswer(qq)}</span></p>}
                   <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">{qq.explanation}</p>
                 </div>
               </div>
@@ -103,20 +105,20 @@ function QuizPlayer() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 fade-up">
       <div className="flex items-center justify-between">
-        <Link to="/quizzes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><ArrowLeft className="h-4 w-4" />Exit</Link>
-        <div className={cn("flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-sm font-bold", left < 60 ? "bg-destructive text-destructive-foreground" : "bg-navy text-navy-foreground")}>
+        <Link to="/quizzes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t("Exit")}</Link>
+        <div className={cn("flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-sm font-bold" dir="ltr", left < 60 ? "bg-destructive text-destructive-foreground" : "bg-navy text-navy-foreground")}>
           <Clock className="h-4 w-4" />{mm}:{ss}
         </div>
       </div>
       <div>
         <div className="mb-2 flex justify-between text-sm text-muted-foreground">
-          <span>{quiz.title}</span><span>Question {i + 1} / {quiz.questions.length}</span>
+          <span>{quiz.title}</span><span>{t("Question {i} / {n}", { i: i + 1, n: quiz.questions.length })}</span>
         </div>
         <Progress value={((i + 1) / quiz.questions.length) * 100} className="h-2" />
       </div>
       <div key={q.id} className="rounded-2xl bg-card p-6 shadow-card fade-up md:p-8">
         <p className="text-xs font-bold uppercase tracking-wide text-primary">
-          {{ mcq: "Multiple choice", truefalse: "True or false", fill: "Fill in the blank", essay: "Short essay" }[q.type]}
+          {t({ mcq: "Multiple choice", truefalse: "True or false", fill: "Fill in the blank", essay: "Short essay" }[q.type])}
         </p>
         <h2 className="mt-2 text-xl font-bold">{q.prompt}</h2>
         <div className="mt-6">
@@ -124,34 +126,34 @@ function QuizPlayer() {
             <div className="grid gap-3">
               {q.options.map((o, k) => (
                 <Choice key={k} active={v === k} onClick={() => set(k)}>
-                  <span className="mr-3 font-bold">{String.fromCharCode(65 + k)}.</span>{o}
+                  <span className="me-3 font-bold">{String.fromCharCode(65 + k)}.</span>{o}
                 </Choice>
               ))}
             </div>
           )}
           {q.type === "truefalse" && (
             <div className="grid grid-cols-2 gap-3">
-              <Choice active={v === true} onClick={() => set(true)}>True</Choice>
-              <Choice active={v === false} onClick={() => set(false)}>False</Choice>
+              <Choice active={v === true} onClick={() => set(true)}>{t("True")}</Choice>
+              <Choice active={v === false} onClick={() => set(false)}>{t("False")}</Choice>
             </div>
           )}
-          {q.type === "fill" && <Input value={(v as string) ?? ""} onChange={(e) => set(e.target.value)} placeholder="Type your answer" className="h-12 text-base" />}
+          {q.type === "fill" && <Input value={(v as string) ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("Type your answer")} className="h-12 text-base" />}
           {q.type === "essay" && (
             <div>
-              <Textarea value={(v as string) ?? ""} onChange={(e) => set(e.target.value)} rows={6} placeholder="Write your answer…" />
+              <Textarea value={(v as string) ?? ""} onChange={(e) => set(e.target.value)} rows={6} placeholder={t("Write your answer…")} />
               <p className="mt-2 text-xs text-muted-foreground">
-                {((v as string) ?? "").split(/\s+/).filter(Boolean).length} words · aim for at least {q.minWords}
+                {t("{n} words · aim for at least {min}", { n: ((v as string) ?? "").split(/\s+/).filter(Boolean).length, min: q.minWords })}
               </p>
             </div>
           )}
         </div>
       </div>
       <div className="flex justify-between gap-3">
-        <button disabled={i === 0} onClick={() => setI(i - 1)} className="rounded-xl bg-card px-5 py-2.5 text-sm font-semibold shadow-card disabled:opacity-40">Previous</button>
+        <button disabled={i === 0} onClick={() => setI(i - 1)} className="rounded-xl bg-card px-5 py-2.5 text-sm font-semibold shadow-card disabled:opacity-40">{t("Previous")}</button>
         {i < quiz.questions.length - 1 ? (
-          <button onClick={() => setI(i + 1)} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant">Next</button>
+          <button onClick={() => setI(i + 1)} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant">{t("Next")}</button>
         ) : (
-          <button onClick={submit} className="rounded-xl bg-navy px-5 py-2.5 text-sm font-semibold text-navy-foreground">Submit quiz</button>
+          <button onClick={submit} className="rounded-xl bg-navy px-5 py-2.5 text-sm font-semibold text-navy-foreground">{t("Submit quiz")}</button>
         )}
       </div>
     </div>
@@ -163,7 +165,7 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
     <button
       onClick={onClick}
       className={cn(
-        "rounded-xl border-2 px-4 py-3.5 text-left font-medium transition-all",
+        "rounded-xl border-2 px-4 py-3.5 text-start font-medium transition-all",
         active ? "border-primary bg-secondary text-secondary-foreground" : "border-border hover:border-primary/50",
       )}
     >
@@ -173,15 +175,15 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
 }
 
 function formatAnswer(q: Question, a: AnswerValue) {
-  if (a === undefined || a === "") return <em className="text-muted-foreground">No answer</em>;
+  if (a === undefined || a === "") return <em className="text-muted-foreground">{translate("No answer")}</em>;
   if (q.type === "mcq") return q.options[a as number];
-  if (q.type === "truefalse") return a ? "True" : "False";
+  if (q.type === "truefalse") return translate(a ? "True" : "False");
   return String(a);
 }
 
 function correctAnswer(q: Question) {
   if (q.type === "mcq") return q.options[q.answer];
-  if (q.type === "truefalse") return q.answer ? "True" : "False";
+  if (q.type === "truefalse") return translate(q.answer ? "True" : "False");
   if (q.type === "fill") return q.answer[0];
   return "";
 }
