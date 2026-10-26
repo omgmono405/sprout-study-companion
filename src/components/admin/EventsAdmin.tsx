@@ -82,7 +82,7 @@ export function EventsAdmin() {
           <label className="block"><Label>Title</Label><input className={field} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} /></label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><Label>Type</Label>
-              <select className={field} value={type} onChange={(e) => setType(e.target.value as EventType)}>
+              <select className={field} value={type} onChange={(e) => pickType(e.target.value as EventType)}>
                 {eventTypes.map((t) => <option key={t} value={t} className="capitalize">{tr(t)}</option>)}
               </select>
             </label>
@@ -99,7 +99,17 @@ export function EventsAdmin() {
             <label className="block"><Label hint="(optional)">Ends</Label><input type="time" className={field} value={end} onChange={(e) => setEnd(e.target.value)} /></label>
           </div>
           <label className="block"><Label hint="(optional)">Location</Label><input className={field} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} /></label>
-          <button className={btn} disabled={busy}><Plus className="h-4 w-4" />{tr("Add")}</button>
+          <label className="flex items-start gap-2.5 rounded-xl bg-secondary p-3 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+            <span>
+              <span className="flex items-center gap-1.5 font-semibold"><BellRing className="h-4 w-4 text-primary" />{tr("Notify all students")}</span>
+              <span className="block text-xs text-muted-foreground">{tr("Sends an alert to their phones and shows it in their alerts.")}</span>
+            </span>
+          </label>
+          {notify && (
+            <label className="block"><Label hint="(optional)">Message to students</Label><textarea className={field} rows={2} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} /></label>
+          )}
+          <button className={btn} disabled={busy}><Plus className="h-4 w-4" />{busy ? tr("Saving…") : tr("Add")}</button>
         </form>
       </Card>
       <Card title="Upcoming">
