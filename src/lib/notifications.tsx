@@ -3,14 +3,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { announcementsQuery, markAnnouncementsRead, type Announcement } from "./content";
 import { getLang, localeFor, translate, useI18n } from "./i18n";
+import { enablePush as subscribePush, getPushStatus, refreshPush, type PushStatus } from "./push";
 
-export type Notice = Announcement & { read: boolean; time: string };
+export type Notice = Announcement & { read: boolean; time: string; heading: string; text: string };
 
 type Ctx = {
   notices: Notice[];
   unread: number;
-  permission: NotificationPermission | "unsupported";
-  requestPermission: () => Promise<void>;
+  push: PushStatus;
+  enablePush: () => Promise<void>;
   markAllRead: () => void;
 };
 
@@ -24,17 +25,38 @@ export function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString(localeFor(getLang()), { month: "short", day: "numeric" });
 }
 
+/** Title and text for a notice; schedule notices are built from their event so dates show in the student's language. */
+export function noticeView(n: Announcement) {
+  if (!n.event) return { heading: n.title, text: n.body };
+  const when = new Date(n.event.starts_at).toLocaleString(localeFor(getLang()), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return {
+    heading: translate("New {type}: {title}", { type: translate(n.event.type), title: n.event.title }),
+    text: [when, n.event.location, n.body].filter(Boolean).join(" · "),
+  };
+}
+
 /** Announcements from the admin panel, with each student's own read state. Mount once inside signed-in pages. */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  useI18n(); // re-render times when the language changes
+  const { lang } = useI18n();
   const { data = [] } = useQuery({ ...announcementsQuery, refetchInterval: 60_000 });
-  const [permission, setPermission] = useState<Ctx["permission"]>("default");
+  const [push, setPush] = useState<PushStatus>("loading");
   const seen = useRef<Set<string> | null>(null);
 
   useEffect(() => {
-    setPermission("Notification" in window ? Notification.permission : "unsupported");
+    getPushStatus().then(setPush).catch(() => setPush("unsupported"));
   }, []);
+
+  // Keep this device linked to the signed-in student and their language.
+  useEffect(() => {
+    if (push === "on") void refreshPush(lang);
+  }, [push, lang]);
 
   // Alert the student about announcements that arrive while the app is open.
   useEffect(() => {
@@ -47,29 +69,24 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (seen.current.has(n.id)) continue;
       seen.current.add(n.id);
       if (n.read) continue;
-      toast(n.title, { description: n.body });
-      if ("Notification" in window && Notification.permission === "granted") {
-        try {
-          new Notification(n.title, { body: n.body, icon: "/icon-192.png" });
-        } catch {
-          /* some mobile browsers only allow notifications via service worker */
-        }
-      }
+      const v = noticeView(n);
+      toast(v.heading, { description: v.text });
     }
   }, [data]);
 
-  const requestPermission = useCallback(async () => {
-    if (!("Notification" in window)) {
-      setPermission("unsupported");
-      toast.error(translate("This browser doesn't support notifications"));
-      return;
+  const enablePush = useCallback(async () => {
+    try {
+      const status = await subscribePush(lang);
+      setPush(status);
+      if (status === "on") toast.success(translate("Notifications enabled"));
+      else if (status === "denied") toast.error(translate("Blocked. Allow notifications in your browser settings."));
+    } catch (e) {
+      console.error(e);
+      toast.error(translate("Couldn't turn on notifications. Please try again."));
     }
-    const p = await Notification.requestPermission();
-    setPermission(p);
-    if (p === "granted") toast.success(translate("Notifications enabled"));
-  }, []);
+  }, [lang]);
 
-  const notices: Notice[] = data.map((n) => ({ ...n, time: timeAgo(n.created_at) }));
+  const notices: Notice[] = data.map((n) => ({ ...n, ...noticeView(n), time: timeAgo(n.created_at) }));
 
   const markAllRead = useCallback(() => {
     const ids = data.filter((n) => !n.read).map((n) => n.id);
@@ -80,7 +97,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   return (
     <NotificationsContext.Provider
-      value={{ notices, unread: notices.filter((n) => !n.read).length, permission, requestPermission, markAllRead }}
+      value={{ notices, unread: notices.filter((n) => !n.read).length, push, enablePush, markAllRead }}
     >
       {children}
     </NotificationsContext.Provider>
