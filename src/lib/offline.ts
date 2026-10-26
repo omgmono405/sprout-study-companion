@@ -12,7 +12,7 @@ function isRefusedContext() {
     if (/^(?:id-preview|preview)(?:-[a-z0-9]+)?--.+$/.test(label)) return true;
     if (/^project--.+-dev$/.test(label)) return true;
   }
-  if (h === "id-preview--3a1562f7-4085-4395-baa3-159fa373d1be.lovable.app") return true;
+  if (h === "id-preview--5188f56d-c4aa-4c19-98d0-ee345cc55418.lovable.app") return true;
   if (/(^|\.)lovableproject(-dev)?\.com$/.test(h)) return true;
   if (/(^|\.)beta\.lovable\.dev$/.test(h)) return true;
   return false;

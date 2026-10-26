@@ -32,7 +32,15 @@ export type StudyEvent = {
   ends_at: string | null;
   location: string;
 };
-export type Announcement = { id: string; title: string; body: string; kind: AnnouncementKind; created_at: string };
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  kind: AnnouncementKind;
+  created_at: string;
+  event_id: string | null;
+  event: Pick<StudyEvent, "id" | "title" | "type" | "starts_at" | "ends_at" | "location"> | null;
+};
 
 const bySort = <T extends { sort: number }>(a: T, b: T) => a.sort - b.sort;
 
@@ -74,13 +82,16 @@ export const announcementsQuery = queryOptions({
   queryKey: ["announcements"],
   queryFn: async () => {
     const [a, r] = await Promise.all([
-      supabase.from("announcements").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("announcements")
+        .select("*, event:events(id, title, type, starts_at, ends_at, location)")
+        .order("created_at", { ascending: false }),
       supabase.from("announcement_reads").select("announcement_id"),
     ]);
     if (a.error) throw a.error;
     if (r.error) throw r.error;
     const read = new Set(r.data.map((x) => x.announcement_id));
-    return (a.data as Announcement[]).map((n) => ({ ...n, read: read.has(n.id) }));
+    return (a.data as unknown as Announcement[]).map((n) => ({ ...n, read: read.has(n.id) }));
   },
 });
 
