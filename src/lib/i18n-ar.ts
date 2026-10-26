@@ -55,7 +55,7 @@ export const ar: Record<string, string> = {
   "Study plan": "خطة المذاكرة",
   "Alerts": "التنبيهات",
   "Admin panel": "لوحة الأدمن",
-  "Install Studia": "ثبّت ستوديا",
+  "Install Studia": "ثبّت تطبيق Studia",
   'Use "Add to Home Screen" in your browser menu to get the app on your phone.':
     "استخدم \"إضافة إلى الشاشة الرئيسية\" من قائمة المتصفح لتحصل على التطبيق على موبايلك.",
   "Close menu": "إغلاق القائمة",

@@ -17,3 +17,4 @@
 - All app pages live under src/routes/_authenticated/ (ssr:false gate, redirects to the public cover page at /); AppShell wraps only that layout.
 - Theme: `dark` class on <html> set by an inline pre-paint script (src/lib/theme.tsx); dark unless the user picked light.
 - Student progress (lesson completions, quiz attempts) is stored per user with owner-only RLS; streaks are derived from activity dates in src/lib/progress.ts, never stored.
+- UI text is translated with `useI18n().t("English text")` / `translate()` from src/lib/i18n.tsx; Arabic strings live in src/lib/i18n-ar.ts keyed by the English text, and a test fails if a translated string has no Arabic entry. Language is stored in localStorage and applied to <html lang/dir> by a pre-paint script; use logical Tailwind classes (ms/me/ps/pe/start/end, text-start) so RTL works.
