@@ -15,7 +15,10 @@ type Ctx = {
   markAllRead: () => void;
 };
 
-const NotificationsContext = createContext<Ctx | null>(null);
+// Kept on globalThis so a hot reload of this file can't split the provider and its consumers
+// across two different context objects (which blanks the page).
+const g = globalThis as { __studiaNotificationsContext?: React.Context<Ctx | null> };
+const NotificationsContext = (g.__studiaNotificationsContext ??= createContext<Ctx | null>(null));
 
 export function timeAgo(iso: string) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
