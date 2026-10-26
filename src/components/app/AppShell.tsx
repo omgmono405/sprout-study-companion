@@ -177,8 +177,8 @@ function NotificationBell() {
           {notices.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t("No announcements yet.")}</li>}
           {notices.slice(0, 6).map((n) => (
             <li key={n.id} className={cn("border-b px-4 py-3 last:border-0", !n.read && "bg-secondary/60")}>
-              <p className="text-sm font-medium">{n.title}</p>
-              <p className="text-xs text-muted-foreground">{n.body}</p>
+              <p className="text-sm font-medium">{n.heading}</p>
+              <p className="text-xs text-muted-foreground">{n.text}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">{n.time}</p>
             </li>
           ))}
