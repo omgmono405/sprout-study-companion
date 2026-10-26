@@ -27,6 +27,8 @@ const typeStyle: Record<EventType, string> = {
   study: "bg-success text-success-foreground",
   deadline: "bg-destructive text-destructive-foreground",
   quiz: "bg-warning text-foreground",
+  exam: "bg-destructive text-destructive-foreground ring-2 ring-warning",
+  assignment: "bg-primary-glow text-primary-foreground",
 };
 
 const dayKey = (d: Date) => d.toDateString();
@@ -78,7 +80,7 @@ function SchedulePage() {
         <p className="text-muted-foreground">{t("Tap a day to see what's planned.")}</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {(["all", "class", "lecture", "study", "quiz", "deadline"] as const).map((t) => (
+        {(["all", "class", "lecture", "study", "quiz", "exam", "assignment", "deadline"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setFilter(t)}

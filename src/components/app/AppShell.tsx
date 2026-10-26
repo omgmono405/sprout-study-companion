@@ -97,10 +97,7 @@ function Shell({ children }: { children: ReactNode }) {
       <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col gap-8 bg-sidebar p-5 lg:flex">
         {brand}
         {links}
-        <div className="mt-auto rounded-2xl bg-sidebar-accent p-4 text-sm text-sidebar-foreground">
-          <p className="font-semibold text-sidebar-accent-foreground">{t("Install Studia")}</p>
-          <p className="mt-1 text-xs opacity-80">{t('Use "Add to Home Screen" in your browser menu to get the app on your phone.')}</p>
-        </div>
+        <UpcomingCard />
       </aside>
 
       {open && (
