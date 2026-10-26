@@ -1,7 +1,6 @@
 // Arabic translations keyed by the English UI text. Missing keys fall back to English.
 export const ar: Record<string, string> = {
   // General
-  "Studia": "ستوديا",
   "Cancel": "إلغاء",
   "Save": "حفظ",
   "Add": "إضافة",

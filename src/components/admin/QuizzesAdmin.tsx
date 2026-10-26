@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { quizzesQuery, subjectsQuery, type Quiz } from "@/lib/content";
 import type { Question } from "@/lib/data";
 import { btn, btnDanger, btnGhost, Card, confirmDelete, field, Label, useSave } from "./shared";
+import { translate as tr } from "@/lib/i18n";
 
 const KEYS = [["quizzes"]];
 const typeLabel = { mcq: "Multiple choice", truefalse: "True / False", fill: "Fill in the blank", essay: "Short essay" };
@@ -29,23 +30,23 @@ export function QuizzesAdmin() {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-bold">Quizzes</h2>
-        <button className={btn} disabled={!subjects.length} onClick={() => setEditing("new")}><Plus className="h-4 w-4" />New quiz</button>
+        <h2 className="font-bold">{tr("Quizzes")}</h2>
+        <button className={btn} disabled={!subjects.length} onClick={() => setEditing("new")}><Plus className="h-4 w-4" />{tr("New quiz")}</button>
       </div>
-      {!subjects.length && <p className="text-sm text-muted-foreground">Add a subject first.</p>}
-      {subjects.length > 0 && quizzes.length === 0 && <p className="text-sm text-muted-foreground">No quizzes yet.</p>}
+      {!subjects.length && <p className="text-sm text-muted-foreground">{tr("Add a subject first.")}</p>}
+      {subjects.length > 0 && quizzes.length === 0 && <p className="text-sm text-muted-foreground">{tr("No quizzes yet.")}</p>}
       <ul className="divide-y">
         {quizzes.map((q) => (
           <li key={q.id} className="flex items-center gap-3 py-3">
             <div className="flex-1">
               <p className="font-medium">{q.title}</p>
               <p className="text-xs text-muted-foreground">
-                {subjects.find((s) => s.id === q.subject_id)?.name} · {q.questions.length} questions · {q.minutes} min
+                {subjects.find((s) => s.id === q.subject_id)?.name} · {tr(q.questions.length === 1 ? "{n} question" : "{n} questions", { n: q.questions.length })} · {tr("{n} min", { n: q.minutes })}
               </p>
             </div>
-            <button className={btnGhost} onClick={() => setEditing(q)}><Pencil className="h-4 w-4" />Edit</button>
-            <button className={btnDanger} aria-label="Delete quiz" onClick={async () => {
-              if (confirmDelete(`quiz "${q.title}"`)) await save(() => supabase.from("quizzes").delete().eq("id", q.id), "Quiz deleted", KEYS);
+            <button className={btnGhost} onClick={() => setEditing(q)}><Pencil className="h-4 w-4" />{tr("Edit")}</button>
+            <button className={btnDanger} aria-label={tr("Delete quiz")} onClick={async () => {
+              if (confirmDelete(tr('quiz "{title}"', { title: q.title }))) await save(() => supabase.from("quizzes").delete().eq("id", q.id), "Quiz deleted", KEYS);
             }}><Trash2 className="h-4 w-4" /></button>
           </li>
         ))}
@@ -66,12 +67,12 @@ function QuizEditor({ initial, onDone }: { initial?: Quiz; onDone: () => void })
   const setQ = (i: number, q: Question) => setQuestions((xs) => xs.map((x, j) => (j === i ? q : x)));
 
   async function submit() {
-    if (!title.trim()) { toast.error("Quiz title is required."); return; }
-    if (!questions.length) { toast.error("Add at least one question."); return; }
+    if (!title.trim()) { toast.error(tr("Quiz title is required.")); return; }
+    if (!questions.length) { toast.error(tr("Add at least one question.")); return; }
     for (const [n, q] of questions.entries()) {
-      if (!q.prompt.trim()) { toast.error(`Question ${n + 1} needs a prompt.`); return; }
-      if (q.type === "mcq" && q.options.filter((o) => o.trim()).length < 2) { toast.error(`Question ${n + 1} needs at least 2 options.`); return; }
-      if (q.type === "fill" && !q.answer.some((a) => a.trim())) { toast.error(`Question ${n + 1} needs an accepted answer.`); return; }
+      if (!q.prompt.trim()) { toast.error(tr("Question {n} needs a prompt.", { n: n + 1 })); return; }
+      if (q.type === "mcq" && q.options.filter((o) => o.trim()).length < 2) { toast.error(tr("Question {n} needs at least 2 options.", { n: n + 1 })); return; }
+      if (q.type === "fill" && !q.answer.some((a) => a.trim())) { toast.error(tr("Question {n} needs an accepted answer.", { n: n + 1 })); return; }
     }
     const clean = questions.map((q): Question => {
       if (q.type === "mcq") return { ...q, options: q.options.map((o) => o.trim()) };
@@ -107,31 +108,31 @@ function QuizEditor({ initial, onDone }: { initial?: Quiz; onDone: () => void })
       {questions.map((q, i) => (
         <Card key={q.id}>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-bold text-primary">Question {i + 1} · {typeLabel[q.type]}</p>
-            <button className={btnDanger} aria-label="Remove question" onClick={() => setQuestions((xs) => xs.filter((_, j) => j !== i))}><X className="h-4 w-4" /></button>
+            <p className="text-sm font-bold text-primary">{tr("Question {n} · {type}", { n: i + 1, type: tr(typeLabel[q.type]) })}</p>
+            <button className={btnDanger} aria-label={tr("Remove question")} onClick={() => setQuestions((xs) => xs.filter((_, j) => j !== i))}><X className="h-4 w-4" /></button>
           </div>
           <div className="space-y-3">
-            <textarea className={field} rows={2} placeholder="Question" value={q.prompt} onChange={(e) => setQ(i, { ...q, prompt: e.target.value })} />
+            <textarea className={field} rows={2} placeholder={tr("Question")} value={q.prompt} onChange={(e) => setQ(i, { ...q, prompt: e.target.value })} />
             {q.type === "mcq" && (
               <div className="space-y-2">
                 <Label hint="(pick the correct one)">Options</Label>
                 {q.options.map((o, k) => (
                   <div key={k} className="flex items-center gap-2">
-                    <input type="radio" name={`ans-${q.id}`} aria-label={`Option ${k + 1} is correct`} checked={q.answer === k} onChange={() => setQ(i, { ...q, answer: k })} />
-                    <input className={field} placeholder={`Option ${String.fromCharCode(65 + k)}`} value={o}
+                    <input type="radio" name={`ans-${q.id}`} aria-label={tr("Option {n} is correct", { n: k + 1 })} checked={q.answer === k} onChange={() => setQ(i, { ...q, answer: k })} />
+                    <input className={field} placeholder={tr("Option {l}", { l: String.fromCharCode(65 + k) })} value={o}
                       onChange={(e) => setQ(i, { ...q, options: q.options.map((x, j) => (j === k ? e.target.value : x)) })} />
                     {q.options.length > 2 && (
-                      <button className={btnDanger} aria-label="Remove option" onClick={() => setQ(i, { ...q, options: q.options.filter((_, j) => j !== k), answer: q.answer === k ? 0 : q.answer > k ? q.answer - 1 : q.answer })}><X className="h-4 w-4" /></button>
+                      <button className={btnDanger} aria-label={tr("Remove option")} onClick={() => setQ(i, { ...q, options: q.options.filter((_, j) => j !== k), answer: q.answer === k ? 0 : q.answer > k ? q.answer - 1 : q.answer })}><X className="h-4 w-4" /></button>
                     )}
                   </div>
                 ))}
-                {q.options.length < 6 && <button className={btnGhost} onClick={() => setQ(i, { ...q, options: [...q.options, ""] })}><Plus className="h-4 w-4" />Add option</button>}
+                {q.options.length < 6 && <button className={btnGhost} onClick={() => setQ(i, { ...q, options: [...q.options, ""] })}><Plus className="h-4 w-4" />{tr("Add option")}</button>}
               </div>
             )}
             {q.type === "truefalse" && (
               <label className="block"><Label>Correct answer</Label>
                 <select className={field} value={q.answer ? "true" : "false"} onChange={(e) => setQ(i, { ...q, answer: e.target.value === "true" })}>
-                  <option value="true">True</option><option value="false">False</option>
+                  <option value="true">{tr("True")}</option><option value="false">{tr("False")}</option>
                 </select>
               </label>
             )}
@@ -150,23 +151,23 @@ function QuizEditor({ initial, onDone }: { initial?: Quiz; onDone: () => void })
                 </label>
               </div>
             )}
-            <input className={field} placeholder="Explanation shown after the quiz" value={q.explanation} onChange={(e) => setQ(i, { ...q, explanation: e.target.value })} />
+            <input className={field} placeholder={tr("Explanation shown after the quiz")} value={q.explanation} onChange={(e) => setQ(i, { ...q, explanation: e.target.value })} />
           </div>
         </Card>
       ))}
 
       <Card>
-        <p className="mb-3 text-sm font-semibold">Add a question</p>
+        <p className="mb-3 text-sm font-semibold">{tr("Add a question")}</p>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(typeLabel) as Question["type"][]).map((t) => (
-            <button key={t} className={btnGhost} onClick={() => setQuestions((xs) => [...xs, blank(t)])}><Plus className="h-4 w-4" />{typeLabel[t]}</button>
+            <button key={t} className={btnGhost} onClick={() => setQuestions((xs) => [...xs, blank(t)])}><Plus className="h-4 w-4" />{tr(typeLabel[t])}</button>
           ))}
         </div>
       </Card>
 
       <div className="flex gap-2">
-        <button className={btn} disabled={busy} onClick={submit}>Save quiz</button>
-        <button className={btnGhost} onClick={onDone}>Cancel</button>
+        <button className={btn} disabled={busy} onClick={submit}>{tr("Save quiz")}</button>
+        <button className={btnGhost} onClick={onDone}>{tr("Cancel")}</button>
       </div>
     </div>
   );
