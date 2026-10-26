@@ -23,12 +23,14 @@ describe("Arabic translations", () => {
 
   it("has an Arabic version of every UI string the app translates", () => {
     const missing = new Set<string>();
+    let found = 0;
     const single = new RegExp(String.raw`\b(?:t|tr|translate)\(\s*` + literal, "g");
     const plural = new RegExp(String.raw`\btn\([^,]+,\s*` + literal + String.raw`,\s*` + literal, "g");
     for (const f of files(join(__dirname, ".."))) {
       const src = readFileSync(f, "utf8");
       for (const m of src.matchAll(single)) {
         const key = (0, eval)(m[1]!) as string;
+        found++;
         if (!(key in ar) && key !== "Studia") missing.add(key);
       }
       for (const m of src.matchAll(plural)) {
@@ -38,6 +40,7 @@ describe("Arabic translations", () => {
         }
       }
     }
+    expect(found).toBeGreaterThan(150);
     expect([...missing]).toEqual([]);
   });
 });
