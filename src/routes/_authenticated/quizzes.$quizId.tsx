@@ -106,7 +106,7 @@ function QuizPlayer() {
     <div className="mx-auto max-w-3xl space-y-6 fade-up">
       <div className="flex items-center justify-between">
         <Link to="/quizzes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t("Exit")}</Link>
-        <div className={cn("flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-sm font-bold" dir="ltr", left < 60 ? "bg-destructive text-destructive-foreground" : "bg-navy text-navy-foreground")}>
+        <div dir="ltr" className={cn("flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-sm font-bold", left < 60 ? "bg-destructive text-destructive-foreground" : "bg-navy text-navy-foreground")}>
           <Clock className="h-4 w-4" />{mm}:{ss}
         </div>
       </div>
