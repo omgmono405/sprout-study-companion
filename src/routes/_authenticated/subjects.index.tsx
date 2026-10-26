@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { subjectProgress, subjectsQuery } from "@/lib/content";
 import { progressQuery } from "@/lib/progress";
 import { useSaved } from "@/lib/offline";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/subjects/")({
   head: () => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/subjects/")({
 });
 
 function SubjectsPage() {
+  const { t } = useI18n();
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const { data: progress } = useSuspenseQuery(progressQuery);
   const done = new Set(progress.lessons.map((l) => l.lesson_key));
@@ -38,17 +40,17 @@ function SubjectsPage() {
     <div className="space-y-6 fade-up">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Content & Solutions</h1>
-          <p className="text-muted-foreground">Explanations, materials and worked problems by subject.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">{t("Content & Solutions")}</h1>
+          <p className="text-muted-foreground">{t("Explanations, materials and worked problems by subject.")}</p>
         </div>
         <div className="relative md:w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search subjects or topics" className="bg-card pl-9" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search subjects or topics")} className="bg-card ps-9" />
         </div>
       </div>
       {saved.length > 0 && (
         <section className="rounded-2xl bg-navy p-5 text-navy-foreground">
-          <p className="flex items-center gap-2 font-semibold"><CloudDownload className="h-4 w-4" />Saved for offline</p>
+          <p className="flex items-center gap-2 font-semibold"><CloudDownload className="h-4 w-4" />{t("Saved for offline")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {saved.map((key) => {
               const [sid, tid] = key.split("/");
@@ -65,7 +67,7 @@ function SubjectsPage() {
         </section>
       )}
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" text="Your school hasn't added any subjects yet. Check back soon." />
+        <EmptyState title={t("No subjects yet")} text={t("Your school hasn't added any subjects yet. Check back soon.")} />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((s) => (
@@ -83,7 +85,7 @@ function SubjectsPage() {
               <Progress value={subjectProgress(s, done)} className="mt-5 h-1.5" />
             </Link>
           ))}
-          {list.length === 0 && <p className="text-muted-foreground">No subjects match “{q}”.</p>}
+          {list.length === 0 && <p className="text-muted-foreground">{t("No subjects match “{q}”.", { q })}</p>}
         </div>
       )}
     </div>

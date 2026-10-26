@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { announcementsQuery, markAnnouncementsRead, type Announcement } from "./content";
+import { getLang, localeFor, translate, useI18n } from "./i18n";
 
 export type Notice = Announcement & { read: boolean; time: string };
 
@@ -17,15 +18,16 @@ const NotificationsContext = createContext<Ctx | null>(null);
 
 export function timeAgo(iso: string) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "Just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (s < 60) return translate("Just now");
+  if (s < 3600) return translate("{n} min ago", { n: Math.floor(s / 60) });
+  if (s < 86400) return translate("{n} h ago", { n: Math.floor(s / 3600) });
+  return new Date(iso).toLocaleDateString(localeFor(getLang()), { month: "short", day: "numeric" });
 }
 
 /** Announcements from the admin panel, with each student's own read state. Mount once inside signed-in pages. */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
+  useI18n(); // re-render times when the language changes
   const { data = [] } = useQuery({ ...announcementsQuery, refetchInterval: 60_000 });
   const [permission, setPermission] = useState<Ctx["permission"]>("default");
   const seen = useRef<Set<string> | null>(null);
@@ -59,12 +61,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const requestPermission = useCallback(async () => {
     if (!("Notification" in window)) {
       setPermission("unsupported");
-      toast.error("This browser doesn't support notifications");
+      toast.error(translate("This browser doesn't support notifications"));
       return;
     }
     const p = await Notification.requestPermission();
     setPermission(p);
-    if (p === "granted") toast.success("Notifications enabled");
+    if (p === "granted") toast.success(translate("Notifications enabled"));
   }, []);
 
   const notices: Notice[] = data.map((n) => ({ ...n, time: timeAgo(n.created_at) }));
@@ -73,7 +75,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const ids = data.filter((n) => !n.read).map((n) => n.id);
     markAnnouncementsRead(ids)
       .then(() => qc.invalidateQueries({ queryKey: announcementsQuery.queryKey }))
-      .catch(() => toast.error("Couldn't update your alerts."));
+      .catch(() => toast.error(translate("Couldn't update your alerts.")));
   }, [data, qc]);
 
   return (

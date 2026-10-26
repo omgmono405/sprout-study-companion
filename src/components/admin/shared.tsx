@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { translate } from "@/lib/i18n";
 
 export const field =
   "w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -15,7 +16,7 @@ export const btnDanger =
 export function Card({ title, children, className }: { title?: string; children: ReactNode; className?: string }) {
   return (
     <section className={cn("rounded-2xl bg-card p-5 shadow-card", className)}>
-      {title && <h2 className="mb-4 font-bold">{title}</h2>}
+      {title && <h2 className="mb-4 font-bold">{translate(title)}</h2>}
       {children}
     </section>
   );
@@ -24,8 +25,8 @@ export function Card({ title, children, className }: { title?: string; children:
 export function Label({ children, hint }: { children: ReactNode; hint?: string }) {
   return (
     <span className="mb-1.5 block text-sm font-medium">
-      {children}
-      {hint && <span className="ml-1 font-normal text-muted-foreground">{hint}</span>}
+      {typeof children === "string" ? translate(children) : children}
+      {hint && <span className="ms-1 font-normal text-muted-foreground">{translate(hint)}</span>}
     </span>
   );
 }
@@ -39,12 +40,12 @@ export function useSave() {
       toast.error(error.message);
       return false;
     }
-    toast.success(ok);
+    toast.success(translate(ok));
     await Promise.all(keys.map((k) => qc.invalidateQueries({ queryKey: k })));
     return true;
   };
 }
 
 export function confirmDelete(what: string) {
-  return window.confirm(`Delete ${what}? This can't be undone.`);
+  return window.confirm(translate("Delete {what}? This can't be undone.", { what }));
 }

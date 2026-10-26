@@ -6,6 +6,7 @@ import { SubjectIcon } from "@/components/app/SubjectIcon";
 import { EmptyState } from "@/components/app/EmptyState";
 import { eventsQuery, quizzesQuery, subjectProgress, subjectsQuery } from "@/lib/content";
 import { computeStreaks, progressQuery } from "@/lib/progress";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -26,23 +27,28 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
-function relDay(d: Date) {
+function dayOffset(d: Date) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   const n = Math.round((x.getTime() - today.getTime()) / 86400000);
-  return n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`;
+  return n;
 }
 
 function Dashboard() {
+  const { t, tn, locale } = useI18n();
+  const relDay = (d: Date) => {
+    const n = dayOffset(d);
+    return n === 0 ? t("Today") : n === 1 ? t("Tomorrow") : t("In {n} days", { n });
+  };
   const { user } = Route.useRouteContext();
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const { data: quizzes } = useSuspenseQuery(quizzesQuery);
   const { data: events } = useSuspenseQuery(eventsQuery);
   const { data: progress } = useSuspenseQuery(progressQuery);
 
-  const firstName = ((user.user_metadata as { full_name?: string }).full_name ?? "student").split(" ")[0];
+  const firstName = ((user.user_metadata as { full_name?: string }).full_name ?? t("student")).split(" ")[0];
   const now = Date.now();
   const upcoming = events.filter((e) => new Date(e.ends_at ?? e.starts_at).getTime() >= now).slice(0, 4);
   const done = new Set(progress.lessons.map((l) => l.lesson_key));
@@ -53,36 +59,36 @@ function Dashboard() {
   const avg = progress.attempts.length
     ? Math.round(progress.attempts.reduce((n, a) => n + a.percent, 0) / progress.attempts.length)
     : null;
-  const todayCount = upcoming.filter((e) => relDay(new Date(e.starts_at)) === "Today").length;
+  const todayCount = upcoming.filter((e) => dayOffset(new Date(e.starts_at)) === 0).length;
   const nextQuiz = quizzes.find((q) => !progress.attempts.some((a) => a.quiz_id === q.id)) ?? quizzes[0];
 
   const stats = [
-    { label: "Study streak", value: `${streak.current} day${streak.current === 1 ? "" : "s"}`, icon: Flame },
-    { label: "Avg. quiz score", value: avg === null ? "—" : `${avg}%`, icon: Trophy },
-    { label: "Lessons completed", value: String(progress.lessons.length), icon: BookCheck },
-    { label: "Quizzes done", value: String(progress.attempts.length), icon: ListChecks },
+    { label: t("Study streak"), value: tn(streak.current, "{n} day", "{n} days"), icon: Flame },
+    { label: t("Avg. quiz score"), value: avg === null ? "—" : `${avg}%`, icon: Trophy },
+    { label: t("Lessons completed"), value: String(progress.lessons.length), icon: BookCheck },
+    { label: t("Quizzes done"), value: String(progress.attempts.length), icon: ListChecks },
   ];
 
   return (
     <div className="space-y-8 fade-up">
       <section className="relative overflow-hidden rounded-3xl bg-hero p-6 text-primary-foreground md:p-10">
-        <p className="text-sm font-medium opacity-80">Welcome back, {firstName}</p>
+        <p className="text-sm font-medium opacity-80">{t("Welcome back, {name}", { name: firstName ?? "" })}</p>
         <h1 className="mt-2 max-w-xl text-3xl font-extrabold tracking-tight md:text-4xl">
           {todayCount > 0
-            ? `You have ${todayCount} thing${todayCount === 1 ? "" : "s"} on your schedule today.`
+            ? tn(todayCount, "You have {n} thing on your schedule today.", "You have {n} things on your schedule today.")
             : upcoming.length > 0
-              ? `Next up: ${upcoming[0]!.title}.`
-              : "Ready to learn something new today?"}
+              ? t("Next up: {title}.", { title: upcoming[0]!.title })
+              : t("Ready to learn something new today?")}
         </h1>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to="/quizzes" className="inline-flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-semibold text-foreground">
-            Practise now <ArrowRight className="h-4 w-4" />
+            {t("Practise now")} <ArrowRight className="h-4 w-4 rtl:rotate-180" />
           </Link>
           <Link to="/schedule" className="inline-flex items-center gap-2 rounded-xl border border-primary-foreground/30 px-4 py-2.5 text-sm font-semibold">
-            View schedule
+            {t("View schedule")}
           </Link>
         </div>
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary-glow/30 blur-3xl" />
+        <div className="pointer-events-none absolute -end-16 -top-16 h-64 w-64 rounded-full bg-primary-glow/30 blur-3xl" />
       </section>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -98,11 +104,11 @@ function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold">Your subjects</h2>
-            <Link to="/subjects" className="text-sm font-medium text-primary">See all</Link>
+            <h2 className="text-xl font-bold">{t("Your subjects")}</h2>
+            <Link to="/subjects" className="text-sm font-medium text-primary">{t("See all")}</Link>
           </div>
           {subjects.length === 0 ? (
-            <EmptyState title="No subjects yet" text="Your school hasn't added any subjects yet. Check back soon." />
+            <EmptyState title={t("No subjects yet")} text={t("Your school hasn't added any subjects yet. Check back soon.")} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               {subjects.slice(0, 4).map((s) => {
@@ -115,11 +121,11 @@ function Dashboard() {
                       </div>
                       <div>
                         <p className="font-semibold">{s.name}</p>
-                        <p className="text-xs text-muted-foreground">{s.instructor || `${s.lessons.length} lessons`}</p>
+                        <p className="text-xs text-muted-foreground">{s.instructor || tn(s.lessons.length, "{n} lesson", "{n} lessons")}</p>
                       </div>
                     </div>
                     <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Progress</span><span className="font-semibold text-foreground">{pct}%</span>
+                      <span>{t("Progress")}</span><span className="font-semibold text-foreground">{pct}%</span>
                     </div>
                     <Progress value={pct} className="mt-2 h-2" />
                   </Link>
@@ -130,9 +136,9 @@ function Dashboard() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-xl font-bold">Coming up</h2>
+          <h2 className="mb-4 text-xl font-bold">{t("Coming up")}</h2>
           <div className="space-y-3 rounded-2xl bg-card p-4 shadow-card">
-            {upcoming.length === 0 && <p className="p-2 text-sm text-muted-foreground">Nothing scheduled yet.</p>}
+            {upcoming.length === 0 && <p className="p-2 text-sm text-muted-foreground">{t("Nothing scheduled yet.")}</p>}
             {upcoming.map((e) => {
               const d = new Date(e.starts_at);
               return (
@@ -143,7 +149,7 @@ function Dashboard() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{e.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {relDay(d)} · {d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                      {relDay(d)} · {d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
@@ -152,11 +158,11 @@ function Dashboard() {
           </div>
           {nextQuiz && (
             <>
-              <h2 className="mb-4 mt-6 text-xl font-bold">Quick quiz</h2>
+              <h2 className="mb-4 mt-6 text-xl font-bold">{t("Quick quiz")}</h2>
               <Link to="/quizzes/$quizId" params={{ quizId: nextQuiz.id }} className="card-lift block rounded-2xl bg-navy p-5 text-navy-foreground">
                 <p className="text-xs uppercase tracking-wide opacity-70">{subjects.find((s) => s.id === nextQuiz.subject_id)?.name}</p>
                 <p className="mt-1 font-semibold">{nextQuiz.title}</p>
-                <p className="mt-3 text-xs opacity-70">{nextQuiz.questions.length} questions · {nextQuiz.minutes} min</p>
+                <p className="mt-3 text-xs opacity-70">{tn(nextQuiz.questions.length, "{n} question", "{n} questions")} · {t("{n} min", { n: nextQuiz.minutes })}</p>
               </Link>
             </>
           )}

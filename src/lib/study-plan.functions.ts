@@ -3,12 +3,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createStudyPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { subjectId: string; goal: string }) => {
+  .inputValidator((input: { subjectId: string; goal: string; lang?: "ar" | "en" }) => {
     const subjectId = String(input?.subjectId ?? "");
     const goal = String(input?.goal ?? "").trim().slice(0, 600);
     if (!/^[0-9a-f-]{36}$/i.test(subjectId)) throw new Error("Please choose a subject.");
     if (!goal) throw new Error("Please share your learning goal.");
-    return { subjectId, goal };
+    const lang: "ar" | "en" = input?.lang === "en" ? "en" : "ar";
+    return { subjectId, goal, lang };
   })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
@@ -39,6 +40,7 @@ export const createStudyPlan = createServerFn({ method: "POST" })
         completed,
         remaining,
         quizzes: attempts,
+        lang: data.lang,
       });
       return { ok: true as const, plan, stats: { completed: completed.length, total: subject.topics.length, quizzes: attempts.length } };
     } catch (e) {

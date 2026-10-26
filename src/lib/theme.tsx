@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const THEME_KEY = "studia-theme";
@@ -7,6 +8,7 @@ export const THEME_KEY = "studia-theme";
 export const themeScript = `try{var t=localStorage.getItem("${THEME_KEY}");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){}`;
 
 export function ThemeToggle({ className }: { className?: string }) {
+  const { t } = useI18n();
   const [dark, setDark] = useState(true);
   useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
   const toggle = () => {
@@ -17,7 +19,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   };
   return (
     <button
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={dark ? t("Switch to light mode") : t("Switch to dark mode")}
       onClick={toggle}
       className={cn("grid h-9 w-9 place-items-center rounded-full transition-colors hover:bg-secondary", className)}
     >

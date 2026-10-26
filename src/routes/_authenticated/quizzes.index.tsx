@@ -4,6 +4,7 @@ import { Clock, HelpCircle } from "lucide-react";
 import { EmptyState } from "@/components/app/EmptyState";
 import { quizzesQuery, subjectsQuery } from "@/lib/content";
 import { progressQuery } from "@/lib/progress";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/quizzes/")({
   head: () => ({
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/_authenticated/quizzes/")({
 const labels = { mcq: "Multiple choice", truefalse: "True / False", fill: "Fill in", essay: "Essay" };
 
 function QuizzesPage() {
+  const { t, tn } = useI18n();
+  const tr = t;
   const { data: quizzes } = useSuspenseQuery(quizzesQuery);
   const { data: subjects } = useSuspenseQuery(subjectsQuery);
   const { data: progress } = useSuspenseQuery(progressQuery);
@@ -33,11 +36,11 @@ function QuizzesPage() {
   return (
     <div className="space-y-6 fade-up">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Quizzes</h1>
-        <p className="text-muted-foreground">Test yourself and get instant, detailed feedback.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("Quizzes")}</h1>
+        <p className="text-muted-foreground">{t("Test yourself and get instant, detailed feedback.")}</p>
       </div>
       {list.length === 0 ? (
-        <EmptyState title="No quizzes yet" text="Quizzes will appear here once your teachers add them." />
+        <EmptyState title={t("No quizzes yet")} text={t("Quizzes will appear here once your teachers add them.")} />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((q) => {
@@ -49,17 +52,17 @@ function QuizzesPage() {
                 </p>
                 <h2 className="mt-1 text-lg font-bold">{q.title}</h2>
                 <div className="mt-3 flex gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><HelpCircle className="h-4 w-4" />{q.questions.length} questions</span>
-                  <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{q.minutes} min</span>
+                  <span className="flex items-center gap-1"><HelpCircle className="h-4 w-4" />{tn(q.questions.length, "{n} question", "{n} questions")}</span>
+                  <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{t("{n} min", { n: q.minutes })}</span>
                 </div>
                 <div className="mt-4 flex flex-1 flex-wrap content-start gap-2">
                   {[...new Set(q.questions.map((x) => x.type))].map((t) => (
-                    <span key={t} className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">{labels[t]}</span>
+                    <span key={t} className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">{tr(labels[t])}</span>
                   ))}
-                  {best >= 0 && <span className="rounded-full bg-success px-2.5 py-1 text-xs font-medium text-success-foreground">Best {best}%</span>}
+                  {best >= 0 && <span className="rounded-full bg-success px-2.5 py-1 text-xs font-medium text-success-foreground">{t("Best {n}%", { n: best })}</span>}
                 </div>
                 <Link to="/quizzes/$quizId" params={{ quizId: q.id }} className="mt-6 rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-elegant">
-                  {best >= 0 ? "Retake quiz" : "Start quiz"}
+                  {best >= 0 ? t("Retake quiz") : t("Start quiz")}
                 </Link>
               </div>
             );

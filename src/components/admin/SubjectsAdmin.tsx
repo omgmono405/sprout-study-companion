@@ -7,6 +7,7 @@ import { formatSize, subjectsQuery, type Lesson, type Subject } from "@/lib/cont
 import { subjectIcons, type Solution, type SubjectIconName } from "@/lib/data";
 import { SubjectIcon } from "@/components/app/SubjectIcon";
 import { cn } from "@/lib/utils";
+import { translate as tr } from "@/lib/i18n";
 import { btn, btnDanger, btnGhost, Card, confirmDelete, field, Label, useSave } from "./shared";
 
 const KEYS = [subjectsQuery.queryKey as unknown as string[]];
@@ -21,14 +22,14 @@ export function SubjectsAdmin() {
       <div className="space-y-4">
         <SubjectForm onSaved={(id) => setSelected(id)} />
         <Card title="Subjects">
-          {subjects.length === 0 && <p className="text-sm text-muted-foreground">No subjects yet.</p>}
+          {subjects.length === 0 && <p className="text-sm text-muted-foreground">{tr("No subjects yet.")}</p>}
           <div className="space-y-1.5">
             {subjects.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSelected(s.id)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium",
+                  "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm font-medium",
                   s.id === selected ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
                 )}
               >
@@ -41,7 +42,7 @@ export function SubjectsAdmin() {
         </Card>
       </div>
       {subject ? <SubjectDetail key={subject.id} subject={subject} onDeleted={() => setSelected(null)} /> : (
-        <Card><p className="text-sm text-muted-foreground">Add a subject to start adding lessons and files.</p></Card>
+        <Card><p className="text-sm text-muted-foreground">{tr("Add a subject to start adding lessons and files.")}</p></Card>
       )}
     </div>
   );
@@ -57,7 +58,7 @@ function SubjectForm({ initial, onSaved, onCancel }: { initial?: Subject; onSave
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { toast.error("Subject name is required."); return; }
+    if (!name.trim()) { toast.error(tr("Subject name is required.")); return; }
     setBusy(true);
     const row = { name: name.trim(), description: description.trim(), instructor: instructor.trim(), icon };
     let id = initial?.id;
@@ -96,8 +97,8 @@ function SubjectForm({ initial, onSaved, onCancel }: { initial?: Subject; onSave
           </div>
         </div>
         <div className="flex gap-2">
-          <button className={btn} disabled={busy}>{initial ? "Save" : <><Plus className="h-4 w-4" />Add subject</>}</button>
-          {onCancel && <button type="button" className={btnGhost} onClick={onCancel}>Cancel</button>}
+          <button className={btn} disabled={busy}>{initial ? tr("Save") : <><Plus className="h-4 w-4" />{tr("Add subject")}</>}</button>
+          {onCancel && <button type="button" className={btnGhost} onClick={onCancel}>{tr("Cancel")}</button>}
         </div>
       </form>
     </Card>
@@ -120,15 +121,15 @@ function SubjectDetail({ subject, onDeleted }: { subject: Subject; onDeleted: ()
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground"><SubjectIcon icon={subject.icon} className="h-5 w-5" /></div>
             <div className="flex-1">
               <p className="text-lg font-bold">{subject.name}</p>
-              <p className="text-sm text-muted-foreground">{subject.instructor || "No teacher set"} · {subject.lessons.length} lessons</p>
+              <p className="text-sm text-muted-foreground">{subject.instructor || tr("No teacher set")} · {tr(subject.lessons.length === 1 ? "{n} lesson" : "{n} lessons", { n: subject.lessons.length })}</p>
             </div>
-            <button className={btnGhost} onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit</button>
+            <button className={btnGhost} onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />{tr("Edit")}</button>
             <button className={btnDanger} onClick={async () => {
-              if (!confirmDelete(`"${subject.name}" with all its lessons, files and quizzes`)) return;
+              if (!confirmDelete(tr('"{name}" with all its lessons, files and quizzes', { name: subject.name }))) return;
               const paths = subject.lessons.flatMap((l) => l.materials.map((m) => m.file_path));
               if (paths.length) await supabase.storage.from("materials").remove(paths);
               if (await save(() => supabase.from("subjects").delete().eq("id", subject.id), "Subject deleted", [...KEYS, ["quizzes"]])) onDeleted();
-            }}><Trash2 className="h-4 w-4" />Delete</button>
+            }}><Trash2 className="h-4 w-4" />{tr("Delete")}</button>
           </div>
         </Card>
       )}
@@ -142,7 +143,7 @@ function SubjectDetail({ subject, onDeleted }: { subject: Subject; onDeleted: ()
             </button>
           ))}
           <button onClick={() => setLessonId("new")} className={cn("inline-flex items-center gap-1 rounded-xl border border-dashed px-3 py-1.5 text-sm font-medium", lessonId === "new" && "border-primary text-primary")}>
-            <Plus className="h-4 w-4" />New lesson
+            <Plus className="h-4 w-4" />{tr("New lesson")}
           </button>
         </div>
         {lessonId === "new" ? (
@@ -172,7 +173,7 @@ function LessonForm({ subjectId, initial, nextSort, onSaved, onDeleted }: {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Lesson title is required."); return; }
+    if (!title.trim()) { toast.error(tr("Lesson title is required.")); return; }
     setBusy(true);
     const clean = solutions
       .map((s) => ({ problem: s.problem.trim(), answer: s.answer.trim(), steps: s.steps.map((x) => x.trim()).filter(Boolean) }))
@@ -201,26 +202,26 @@ function LessonForm({ subjectId, initial, nextSort, onSaved, onDeleted }: {
           {solutions.map((s, i) => (
             <div key={i} className="space-y-2 rounded-xl border p-3">
               <div className="flex gap-2">
-                <input className={field} placeholder="Problem" value={s.problem} onChange={(e) => setSol(i, { problem: e.target.value })} />
-                <button type="button" aria-label="Remove solution" className={btnDanger} onClick={() => setSolutions((x) => x.filter((_, j) => j !== i))}><X className="h-4 w-4" /></button>
+                <input className={field} placeholder={tr("Problem")} value={s.problem} onChange={(e) => setSol(i, { problem: e.target.value })} />
+                <button type="button" aria-label={tr("Remove solution")} className={btnDanger} onClick={() => setSolutions((x) => x.filter((_, j) => j !== i))}><X className="h-4 w-4" /></button>
               </div>
-              <textarea className={field} rows={3} placeholder="Steps — one per line" value={s.steps.join("\n")} onChange={(e) => setSol(i, { steps: e.target.value.split("\n") })} />
-              <input className={field} placeholder="Final answer" value={s.answer} onChange={(e) => setSol(i, { answer: e.target.value })} />
+              <textarea className={field} rows={3} placeholder={tr("Steps — one per line")} value={s.steps.join("\n")} onChange={(e) => setSol(i, { steps: e.target.value.split("\n") })} />
+              <input className={field} placeholder={tr("Final answer")} value={s.answer} onChange={(e) => setSol(i, { answer: e.target.value })} />
             </div>
           ))}
-          <button type="button" className={btnGhost} onClick={() => setSolutions((x) => [...x, { problem: "", steps: [], answer: "" }])}><Plus className="h-4 w-4" />Add solution</button>
+          <button type="button" className={btnGhost} onClick={() => setSolutions((x) => [...x, { problem: "", steps: [], answer: "" }])}><Plus className="h-4 w-4" />{tr("Add solution")}</button>
         </div>
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button className={btn} disabled={busy}>{initial ? "Save lesson" : "Add lesson"}</button>
+        <button className={btn} disabled={busy}>{initial ? tr("Save lesson") : tr("Add lesson")}</button>
         {initial && (
           <button type="button" className={btnDanger} onClick={async () => {
-            if (!confirmDelete(`lesson "${initial.title}"`)) return;
+            if (!confirmDelete(tr('lesson "{title}"', { title: initial.title }))) return;
             const paths = initial.materials.map((m) => m.file_path);
             if (paths.length) await supabase.storage.from("materials").remove(paths);
             if (await save(() => supabase.from("lessons").delete().eq("id", initial.id), "Lesson deleted", KEYS)) onDeleted?.();
-          }}><Trash2 className="h-4 w-4" />Delete lesson</button>
+          }}><Trash2 className="h-4 w-4" />{tr("Delete lesson")}</button>
         )}
       </div>
     </form>
@@ -235,8 +236,8 @@ function MaterialsEditor({ lesson }: { lesson: Lesson }) {
 
   async function upload(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) { toast.error("Choose a file first."); return; }
-    if (file.size > 50 * 1024 * 1024) { toast.error("Files must be 50 MB or smaller."); return; }
+    if (!file) { toast.error(tr("Choose a file first.")); return; }
+    if (file.size > 50 * 1024 * 1024) { toast.error(tr("Files must be 50 MB or smaller.")); return; }
     setBusy(true);
     const safe = file.name.replace(/[^\w.-]+/g, "_");
     const path = `${lesson.id}/${crypto.randomUUID()}-${safe}`;
@@ -255,14 +256,14 @@ function MaterialsEditor({ lesson }: { lesson: Lesson }) {
 
   return (
     <div className="border-t pt-5">
-      <p className="mb-3 font-semibold">Files for this lesson (PDFs, slides, videos)</p>
+      <p className="mb-3 font-semibold">{tr("Files for this lesson (PDFs, slides, videos)")}</p>
       <ul className="mb-4 space-y-2">
-        {lesson.materials.length === 0 && <li className="text-sm text-muted-foreground">No files yet.</li>}
+        {lesson.materials.length === 0 && <li className="text-sm text-muted-foreground">{tr("No files yet.")}</li>}
         {lesson.materials.map((m) => (
           <li key={m.id} className="flex items-center gap-3 rounded-xl border px-3 py-2 text-sm">
             <span className="flex-1 truncate font-medium">{m.title}</span>
             <span className="text-xs text-muted-foreground">{formatSize(m.size_bytes)}</span>
-            <button className={btnDanger} aria-label="Delete file" onClick={async () => {
+            <button className={btnDanger} aria-label={tr("Delete file")} onClick={async () => {
               if (!confirmDelete(`"${m.title}"`)) return;
               await supabase.storage.from("materials").remove([m.file_path]);
               await save(() => supabase.from("materials").delete().eq("id", m.id), "File deleted", KEYS);
@@ -271,9 +272,9 @@ function MaterialsEditor({ lesson }: { lesson: Lesson }) {
         ))}
       </ul>
       <form onSubmit={upload} className="flex flex-col gap-2 sm:flex-row">
-        <input className={field} placeholder="File title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <input type="file" aria-label="Choose file" accept=".pdf,.ppt,.pptx,.doc,.docx,video/*,image/*" className={cn(field, "sm:max-w-64")} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        <button className={btn} disabled={busy}><FileUp className="h-4 w-4" />{busy ? "Uploading…" : "Upload"}</button>
+        <input className={field} placeholder={tr("File title (optional)")} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input type="file" aria-label={tr("Choose file")} accept=".pdf,.ppt,.pptx,.doc,.docx,video/*,image/*" className={cn(field, "sm:max-w-64")} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <button className={btn} disabled={busy}><FileUp className="h-4 w-4" />{busy ? tr("Uploading…") : tr("Upload")}</button>
       </form>
     </div>
   );
