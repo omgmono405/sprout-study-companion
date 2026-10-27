@@ -22,6 +22,13 @@
       "when": 1793058048703,
       "tag": "0002_push_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793059255205,
+      "tag": "0003_scope_course_content_reads_to_signed_in",
+      "breakpoints": true
     }
   ]
 }
