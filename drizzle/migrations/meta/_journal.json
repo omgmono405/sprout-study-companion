@@ -29,6 +29,13 @@
       "when": 1793059255205,
       "tag": "0003_scope_course_content_reads_to_signed_in",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793059392557,
+      "tag": "0004_limit_material_file_reads_to_published",
+      "breakpoints": true
     }
   ]
 }
